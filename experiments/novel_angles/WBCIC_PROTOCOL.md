@@ -12,7 +12,10 @@ positions to the nearest sample. Do not count waiting gaps as eye-state time.
 
 Apply the hash-pinned notebook unchanged after loading the 59 scalp EEG
 channels with standard montage coordinates, dropping ECG/EOG, and setting
-50 Hz line frequency. Do not modify ICA or rejection. Exclude an entire
+50 Hz line frequency. Interpret the Neuracle signal header's `?V` fields
+as microvolts when its physical extrema are ±375000, consistent with the
+[manufacturer's ±375 mV range](https://www.neuracle.cn/productinfo/148636.html).
+Do not modify ICA or rejection. Exclude an entire
 participant if any of the six blocks cannot be identified or preprocessed,
 or does not meet the retained-window floor. Report exclusions by reason
 without accessing verification scores; network or archive integrity failures

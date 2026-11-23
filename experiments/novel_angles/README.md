@@ -52,9 +52,29 @@ the scalp channels, and delegates the remaining steps to the hash-pinned
 notebook at 50 Hz line frequency. It reuses completed FIFs when resumed. All
 six expected blocks must finish preparation or have the notebook's
 single-component ICA rejection; other errors stop scoring. Eligibility uses
-the locked window minima before any scoring. No raw EDF, FIF, per-recording
+the locked window minima before any scoring. The adapter brings recordings
+with identical electrode sets into the same name order without changing
+the original FIFs or the locked scorer. No raw EDF, FIF, per-recording
 log or failure manifest belongs in Git. See [Round 3 in the report](REPORT.md#round-3-independent-replication-search)
 for the candidate audit and current analysis status.
+
+## Round 3: WBCIC-SHU modified-duration three-day analysis
+
+Follow the [prespecified WBCIC protocol](WBCIC_PROTOCOL.md). Use a fresh
+private output folder. The runner streams the BDF rest prefixes from the
+pinned Figshare ZIP, so a local copy of the full archive is not needed.
+Use the recipe Python for preparation and the kit evaluation Python for
+scoring, with the same BLAS limits and cross-condition anchor as above.
+
+```sh
+umask 077
+python -B loop3_wbcic.py prepare "$WBCIC_FIFS" "$KIT"
+python -B loop3_wbcic.py score "$WBCIC_FIFS" "$CROSS_CONDITION_KIT" \
+  --anchor "$ANCHOR" --output loop3-wbcic.json
+```
+
+Only the score JSON is aggregate. Keep the preparation manifest, source
+recordings, FIFs and per-recording logs private.
 
 ## Reproduce the Round 1 pilot
 

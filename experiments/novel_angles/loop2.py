@@ -17,6 +17,7 @@ from extract import features
 
 
 WINDOWS = 24
+ENROLLMENT_WINDOWS = 32
 STATES = ("CE", "OE")
 PANELS = {"frontal": "FP1 FP2 F3 F4 F7 F8", "posterior": "P3 P4 P7 P8 O1 O2"}
 ANCHORS = {"mismatch": 19.4, "mixed": 5.5}
@@ -59,7 +60,8 @@ def recording_features(job):
     return [c.upper() for c in ep.ch_names], len(ep), arrays
 
 
-def load_features(root, cohort, kit, notebook, workers, expected_people=None):
+def load_features(root, cohort, kit, notebook, workers, expected_people=None,
+                  windows=WINDOWS, enrollment_windows=ENROLLMENT_WINDOWS):
     files = {}
     for path in sorted(root.rglob("*_desc-preproc_epo.fif")):
         match = re.fullmatch(r"(sub-[^_]+)_ses-(V\d+)_task-(CE|OE)_desc-preproc_epo", path.stem)
@@ -67,7 +69,7 @@ def load_features(root, cohort, kit, notebook, workers, expected_people=None):
             raise ValueError(f"Unexpected or duplicate recipe file: {path}")
         files[match.groups()] = path
     people = sorted({person for person, _, _ in files})
-    rest = cohort in ("ds004148", "ds005385")
+    rest = cohort in ("ds004148", "ds005385", "wbcic-shu")
     prefix = ("V0", "V2") if rest else ("V0", "V1", "V2")
     visits = [tuple(sorted({v for person, v, _ in files if person == s})) for s in people]
     if expected_people is None:
@@ -79,8 +81,8 @@ def load_features(root, cohort, kit, notebook, workers, expected_people=None):
     expected = [(s, v, state) for s, vs in zip(people, visits, strict=True) for v in vs for state in STATES]
     if set(expected) != files.keys():
         raise ValueError("FIFs do not form complete CE/OE pairs")
-    cap = 32 if rest else WINDOWS
-    jobs = [(files[k], cap if k[1] == "V0" and rest else WINDOWS) for k in expected]
+    cap = max(enrollment_windows, windows) if rest else windows
+    jobs = [(files[k], cap if k[1] == "V0" and rest else windows) for k in expected]
     counts = []
     channels = None
     arrays = {}
@@ -114,8 +116,8 @@ def rotations(groups):
             yield tuple(np.array(ids, dtype=int) for ids in (claim, train, cal, test))
 
 
-def mixed_probes(x):
-    ce, oe = x[..., 0, :WINDOWS, :], x[..., 1, :WINDOWS, :]
+def mixed_probes(x, windows=WINDOWS):
+    ce, oe = x[..., 0, :windows, :], x[..., 1, :windows, :]
     ce_repeat = (ce[..., ::2, :] + ce[..., 1::2, :]) / 2
     oe_repeat = (oe[..., ::2, :] + oe[..., 1::2, :]) / 2
     return {"ce": ce_repeat, "oe": oe_repeat, "pair": (ce + oe) / 2}
@@ -127,11 +129,11 @@ def contrasts(x):
             "oe-repeat": oe[..., ::2, :] - oe[..., 1::2, :]}
 
 
-def training_samples(x, n_visits, enrollment):
-    budget = 32 // n_visits
+def training_samples(x, n_visits, enrollment, enrollment_windows=ENROLLMENT_WINDOWS):
+    budget = enrollment_windows // n_visits
     if enrollment == "mixed":
-        return x[:, :n_visits, :, :budget // 2].reshape(len(x), 32, -1)
-    return x[:, :n_visits, STATES.index(enrollment), :budget].reshape(len(x), 32, -1)
+        return x[:, :n_visits, :, :budget // 2].reshape(len(x), enrollment_windows, -1)
+    return x[:, :n_visits, STATES.index(enrollment), :budget].reshape(len(x), enrollment_windows, -1)
 
 
 def cosine_scores(train, probes, claim):
@@ -193,16 +195,16 @@ def score_modes(trains, probes, split, sources, scorer, pools):
     return result
 
 
-def standardized(x, reference, n_visits):
+def standardized(x, reference, n_visits, windows=WINDOWS):
     x = x.reshape(*x.shape[:4], -1)
-    old = x[reference, :n_visits, :, :WINDOWS]
+    old = x[reference, :n_visits, :, :windows]
     center = old.mean(axis=(0, 1, 2, 3))
     scale = old.std(axis=(0, 1, 2, 3)).clip(.05)
     return (x - center) / scale
 
 
-def align(cov, reference, visits, n_visits, mode):
-    donors = cov[reference, ..., :WINDOWS, :, :]
+def align(cov, reference, visits, n_visits, mode, windows=WINDOWS):
+    donors = cov[reference, ..., :windows, :, :]
     if mode == "none":
         return tangent(cov, donors[:, :n_visits].mean(axis=(0, 1, 2, 3)))
     if mode == "condition":
@@ -214,7 +216,7 @@ def align(cov, reference, visits, n_visits, mode):
             if not len(source):
                 raise ValueError(f"No same-visit reference donors at {visit}")
             target = visits[:, idx] == visit
-            mean = cov[source, idx:idx+1, :, :WINDOWS].mean(axis=(0, 3), keepdims=True)
+            mean = cov[source, idx:idx+1, :, :windows].mean(axis=(0, 3), keepdims=True)
             out[target, idx:idx+1] = tangent(cov[target, idx:idx+1], mean)
     return out
 
@@ -232,7 +234,7 @@ def spectral_data(arrays, channels):
         yield f"svm-{panel}", arrays["svm"][..., idx, :]
 
 
-def ledgers(arrays, channels, visits, groups, ns):
+def ledgers(arrays, channels, visits, groups, ns, windows=WINDOWS, enrollment_windows=ENROLLMENT_WINDOWS):
     n_visits = visits.shape[1] - 2
     result = defaultdict(list)
     mixed_pools = {"single": ("ce", "oe"), "pair": ("pair",)}
@@ -253,25 +255,26 @@ def ledgers(arrays, channels, visits, groups, ns):
         reference = split[1]
         for kind, data in spectral:
             svc = kind.startswith("svm")
-            x = data.reshape(*data.shape[:4], -1) if svc else standardized(data, reference, n_visits)
-            trains = {"mixed": training_samples(x, n_visits, "mixed")}
-            add(kind, score_modes(trains, mixed_probes(x), split, to_mixed,
+            x = data.reshape(*data.shape[:4], -1) if svc else standardized(data, reference, n_visits, windows)
+            trains = {"mixed": training_samples(x, n_visits, "mixed", enrollment_windows)}
+            add(kind, score_modes(trains, mixed_probes(x, windows), split, to_mixed,
                                   svm if svc else similarity, mixed_pools))
             if kind == "cosine":
                 diff = contrasts(x)
-                cross_count = 16 // n_visits
-                trains = {m: data[:, :n_visits, :cross_count].reshape(len(x), 16, -1)
+                cross_budget = enrollment_windows // 2
+                cross_count = cross_budget // n_visits
+                trains = {m: data[:, :n_visits, :cross_count].reshape(len(x), cross_budget, -1)
                           for m, data in diff.items()}
-                probes = contrasts(x[..., :WINDOWS, :])
+                probes = contrasts(x[..., :windows, :])
                 add("cosine-contrast", score_modes(
                     trains, probes, split, {m: m for m in probes}, similarity,
                     {"within": ("ce-repeat", "oe-repeat"), "cross": ("cross",)},
                 ))
         for mode in ("none", "condition", "visit-condition"):
-            x = align(arrays["cov"], reference, visits, n_visits, mode)
+            x = align(arrays["cov"], reference, visits, n_visits, mode, windows)
             for enroll in (("mixed",) if mode == "none" else STATES):
-                trains = {"mixed": training_samples(x, n_visits, enroll)}
-                add(f"cov-{mode}-{enroll}", score_modes(trains, mixed_probes(x), split, to_mixed,
+                trains = {"mixed": training_samples(x, n_visits, enroll, enrollment_windows)}
+                add(f"cov-{mode}-{enroll}", score_modes(trains, mixed_probes(x, windows), split, to_mixed,
                                                        similarity, mixed_pools))
         print(f"Scored {i}/20 identity rotations", flush=True)
     return {key: np.concatenate(parts) for key, parts in result.items()}

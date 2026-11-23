@@ -62,6 +62,22 @@ def epoch_file(root, person, visit, state):
     return root / person / f"ses-{visit}" / "eeg" / f"{person}_ses-{visit}_task-{state}_desc-preproc_epo.fif"
 
 
+def stage_channels(source, target, canonical):
+    epochs = mne.read_epochs(source, preload=False, verbose="ERROR")
+    names = {name.upper(): name for name in epochs.ch_names}
+    if len(names) != len(epochs.ch_names) or set(names) != set(canonical):
+        raise ValueError(f"Dortmund electrode set does not match the canonical recording: {source.name}")
+    if tuple(names) == canonical:
+        if not target.exists():
+            target.symlink_to(source.resolve())
+        return False
+    partial = target.with_name(f"partial-{target.name}")
+    epochs.load_data().reorder_channels([names[name] for name in canonical])
+    epochs.save(partial, fmt="double", overwrite=True, verbose="ERROR")
+    partial.replace(target)
+    return True
+
+
 def eligibility(population, counts, failures):
     known_failures = {r["recording"] for r in failures
                       if r["error"].startswith("RuntimeError('One PCA component captures most")}
@@ -123,14 +139,17 @@ def score(args, population):
     inputs.mkdir(exist_ok=True)
     if any(path.name not in eligible for path in inputs.iterdir()):
         raise ValueError("Stale scoring inputs; remove the private scoring-inputs directory before retrying")
+    reference = epoch_file(args.fifs, eligible[0], "V0", "CE")
+    canonical = tuple(name.upper() for name in mne.read_epochs(reference, preload=False, verbose="ERROR").ch_names)
+    reordered = 0
     for person in eligible:
         target = inputs / person
         target.mkdir(exist_ok=True)
         for visit, state in population[person]:
             path = epoch_file(args.fifs, person, visit, state)
-            link = target / path.name
-            if not link.exists():
-                link.symlink_to(path.resolve())
+            reordered += stage_channels(path, target / path.name, canonical)
+    print(f"Staged {sum(len(population[person]) for person in eligible)} recordings; "
+          f"reordered {reordered} by electrode name", flush=True)
     kit = kit_module(args.kit)
     notebook = Path(__file__).resolve().parents[2] / "07_complete_results_all_models_all_sessions.ipynb"
     people, channels, visits, arrays, min_epochs = load_features(
@@ -143,7 +162,7 @@ def score(args, population):
     result.update(dataset="ds005385", protocol=PROTOCOL, subjects=len(people),
                   inventory_subjects=len(population), generated_recordings=len(counts),
                   preprocessing_failures=len(failures), shortest_recording=min_epochs,
-                  draws=500, anchor_frr_penalties_pp=anchor)
+                  reordered_recordings=reordered, draws=500, anchor_frr_penalties_pp=anchor)
     partial = args.output.with_suffix(".partial")
     partial.write_text(json.dumps(result, indent=2, allow_nan=False) + "\n")
     partial.replace(args.output)

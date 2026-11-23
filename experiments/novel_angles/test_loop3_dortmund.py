@@ -2,10 +2,29 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest import TestCase
 
-from loop3_dortmund import eligibility, inventory
+import mne
+import numpy as np
+
+from loop3_dortmund import eligibility, inventory, stage_channels
 
 
 class DortmundTest(TestCase):
+    def test_staging_reorders_electrodes_without_swapping_signal_identity(self):
+        with TemporaryDirectory() as directory:
+            source = Path(directory) / "source_epo.fif"
+            target = Path(directory) / "staged_epo.fif"
+            data = np.array([[[2., 3.], [4., 5.]]])
+            epochs = mne.EpochsArray(data, mne.create_info(["Fp2", "Fp1"], 250, "eeg"),
+                                     verbose="ERROR")
+            epochs.save(source, fmt="double", verbose="ERROR")
+            self.assertTrue(stage_channels(source, target, ("FP1", "FP2")))
+            staged = mne.read_epochs(target, preload=True, verbose="ERROR")
+            self.assertEqual(staged.ch_names, ["Fp1", "Fp2"])
+            np.testing.assert_array_equal(staged.get_data(), data[:, ::-1])
+            self.assertEqual(mne.read_epochs(source, preload=False, verbose="ERROR").ch_names, ["Fp2", "Fp1"])
+            with self.assertRaisesRegex(ValueError, "electrode set"):
+                stage_channels(source, target, ("FP1", "C3"))
+
     def test_inventory_uses_followup_pre_and_same_day_post_calibration(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)

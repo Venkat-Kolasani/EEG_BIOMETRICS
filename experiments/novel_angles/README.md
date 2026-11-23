@@ -61,8 +61,10 @@ for the candidate audit and current analysis status.
 ## Round 3: WBCIC-SHU modified-duration three-day analysis
 
 Follow the [prespecified WBCIC protocol](WBCIC_PROTOCOL.md). Use a fresh
-private output folder. The runner streams the BDF rest prefixes from the
-pinned Figshare ZIP, so a local copy of the full archive is not needed.
+private output folder. The runner streams signal members from the pinned
+Figshare ZIP, checks full-member size and CRC before preprocessing, and
+keeps only the rest prefix. It stages outputs under `crc-checked/` rather
+than reusing FIFs generated before signal checksum verification was added.
 Use the recipe Python for preparation and the kit evaluation Python for
 scoring, with the same BLAS limits and cross-condition anchor as above.
 

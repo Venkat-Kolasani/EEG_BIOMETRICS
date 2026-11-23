@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from functools import partial
 from io import SEEK_CUR, SEEK_END, SEEK_SET
+from itertools import chain
 import json
 import math
 from pathlib import Path
@@ -146,18 +147,15 @@ def rest_prefix(member, output, last_second, expected_stamp):
         header += decompressor.decompress(decompressor.unconsumed_tail, header_size - 256)
         if len(header) != header_size or not header.startswith(b"\xffBIOSEMI"):
             raise ValueError("Invalid WBCIC data header")
-        if timestamp(header) != expected_stamp:
-            raise UnusableSession("signal and event timestamps differ")
         channels = int(header[252:256])
         bytes_per_record = 3 * sum(int(header[i:i + 8])
                                    for i in range(256 + 216 * channels, 256 + 224 * channels, 8))
         record_duration = float(header[244:252])
-        records = math.ceil(last_second / record_duration)
+        requested = math.ceil(last_second / record_duration)
         available = int(header[236:244])
         if header_size + available * bytes_per_record != member.file_size:
             raise ValueError("WBCIC signal inventory conflicts with BDF header")
-        if records > available:
-            raise UnusableSession("recording ends before rest block")
+        records = min(requested, available)
         unit_start = 256 + 96 * channels
         unit_end = unit_start + 8 * channels
         units = bytearray(header[unit_start:unit_end])
@@ -172,13 +170,31 @@ def rest_prefix(member, output, last_second, expected_stamp):
             file.write(header[:236] + f"{records:<8}".encode()
                        + header[244:unit_start] + units + header[unit_end:])
             remaining = records * bytes_per_record
-            compressed = decompressor.unconsumed_tail
-            while remaining:
-                block = decompressor.decompress(compressed, min(remaining, 1 << 20))
-                file.write(block)
-                remaining -= len(block)
-                if remaining:
-                    compressed = decompressor.unconsumed_tail or next(chunks)
+            size = len(header)
+            crc = zlib.crc32(header)
+            limit = 1 << 20
+            for compressed in chain((decompressor.unconsumed_tail,), chunks):
+                while True:
+                    block = decompressor.decompress(compressed, limit)
+                    size += len(block)
+                    if size > member.file_size or decompressor.unused_data:
+                        raise ValueError("Invalid WBCIC signal member size or stream")
+                    crc = zlib.crc32(block, crc)
+                    if remaining:
+                        keep = min(remaining, len(block))
+                        file.write(block[:keep])
+                        remaining -= keep
+                    compressed = decompressor.unconsumed_tail
+                    if not compressed and len(block) < limit:
+                        break
+            if not decompressor.eof or size != member.file_size or remaining:
+                raise ValueError("Invalid WBCIC signal member size or stream")
+            if crc != member.CRC:
+                raise ValueError("Invalid WBCIC signal member checksum")
+        if timestamp(header) != expected_stamp:
+            raise UnusableSession("signal and event timestamps differ")
+        if requested > available:
+            raise UnusableSession("recording ends before rest block")
 
 
 def setup_bdf(path, onset):
@@ -316,6 +332,7 @@ def main():
     parser.add_argument("--output", type=Path)
     parser.add_argument("--workers", type=int, default=4)
     args = parser.parse_args()
+    args.fifs /= "crc-checked"
     if args.stage == "prepare":
         prepare(args)
     elif args.anchor is None or args.output is None:

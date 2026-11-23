@@ -130,6 +130,8 @@ The [protocol was prespecified](WBCIC_PROTOCOL.md) before scoring. The first 60 
 
 **10 of 51 participants were eligible.** Preparation generated 146 readable blocks, including 60 for the eligible cohort. The exclusions were 31 participants with signal/event header timestamp mismatches (50 sessions), eight with fewer than three distinct dates after marker screening, and two with a missing or duplicate eye-state marker (two sessions). The prespecified exclusions were not relaxed. All six eligible blocks per participant met their retained-window minima.
 
+The original run checked event-member CRCs but did not checksum the signal prefixes. A fresh rerun checked full ZIP member size and CRC for all 123 signal BDFs from participants who passed event-marker and date screening, including all 30 signal BDFs used in scoring. It reproduced the preparation manifest and aggregate results exactly.
+
 Later-date results, in % for arm rates and percentage points (pp) for paired-minus-single differences. Intervals are 95% subject-bootstrap CIs. [Aggregate output](loop3-wbcic.json).
 
 | Scorer | EER single → paired (%) | Δ EER (pp) | FRR single → paired (%) | Δ FRR (pp) | FAR single → paired (%) | Δ FAR (pp) |

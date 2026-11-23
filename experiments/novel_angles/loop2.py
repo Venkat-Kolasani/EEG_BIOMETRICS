@@ -59,7 +59,7 @@ def recording_features(job):
     return [c.upper() for c in ep.ch_names], len(ep), arrays
 
 
-def load_features(root, cohort, kit, notebook, workers):
+def load_features(root, cohort, kit, notebook, workers, expected_people=None):
     files = {}
     for path in sorted(root.rglob("*_desc-preproc_epo.fif")):
         match = re.fullmatch(r"(sub-[^_]+)_ses-(V\d+)_task-(CE|OE)_desc-preproc_epo", path.stem)
@@ -67,10 +67,12 @@ def load_features(root, cohort, kit, notebook, workers):
             raise ValueError(f"Unexpected or duplicate recipe file: {path}")
         files[match.groups()] = path
     people = sorted({person for person, _, _ in files})
-    rest = cohort == "ds004148"
+    rest = cohort in ("ds004148", "ds005385")
     prefix = ("V0", "V2") if rest else ("V0", "V1", "V2")
     visits = [tuple(sorted({v for person, v, _ in files if person == s})) for s in people]
-    if len(people) != (60 if rest else 29) or any(
+    if expected_people is None:
+        expected_people = {"ds004148": 60, "ds007176": 29}[cohort]
+    if len(people) != expected_people or any(
         vs[:-1] != prefix or vs[-1] not in (("V3",) if rest else ("V3", "V4")) for vs in visits
     ):
         raise ValueError(f"Incomplete cohort: {len(people)} subjects, {len(files)} recordings")

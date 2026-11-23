@@ -32,6 +32,30 @@ python -B loop2.py ds004148 ~/eeg-verified-restcog ~/ds004148-v1.0.1 \
 
 The runner refuses to score either cohort unless the observed SVM mismatch and mixed-enrollment FRR contrasts round to 19.4 and 5.5 percentage points. The output contains only aggregate rates, subject-bootstrap intervals, and criterion decisions; rates are fractions unless a field is labeled `pp`.
 
+## Round 3: Dortmund two-day sensitivity analysis
+
+This is **not** a three-day replication. Use a raw git-annex checkout at
+`6a558cd5852503e66df9ac7fdac2f3a7f4ed5f12` (OpenNeuro ds005385 v1.0.3)
+and a fresh private output folder. Preparation uses the recipe Python; score
+uses the cross-condition kit's evaluation Python. As above, limit BLAS threads
+per worker and set `$ANCHOR` to the observed cross-condition CSV.
+
+```sh
+umask 077
+python -B loop3_dortmund.py prepare "$DORTMUND_RAW" "$DORTMUND_FIFS" "$KIT"
+python -B loop3_dortmund.py score "$DORTMUND_RAW" "$DORTMUND_FIFS" \
+  "$CROSS_CONDITION_KIT" --anchor "$ANCHOR" --output loop3-dortmund.json
+```
+
+The adapter fetches and checks each selected EDF against its annex key, loads
+the scalp channels, and delegates the remaining steps to the hash-pinned
+notebook at 50 Hz line frequency. It reuses completed FIFs when resumed. All
+six expected blocks must finish preparation or have the notebook's
+single-component ICA rejection; other errors stop scoring. Eligibility uses
+the locked window minima before any scoring. No raw EDF, FIF, per-recording
+log or failure manifest belongs in Git. See [Round 3 in the report](REPORT.md#round-3-independent-replication-search)
+for the candidate audit and current analysis status.
+
 ## Reproduce the Round 1 pilot
 
 Tested using Python 3.12, MNE 1.13.2, NumPy 2.5.5, SciPy 1.18.1 and scikit-learn 1.9.1. Use a clean Python environment with those versions. Set BLAS thread counts to avoid oversubscription; allow about 18 GiB for raw files and under 1 GiB for the feature cache. Run from this directory:

@@ -54,7 +54,7 @@ def compare(actual, expected):
     }
 
 
-def execute(job):
+def execute(job, configure=None):
     kit, output, reference, key, path, line_freq = job
     person, visit, task = key
     folder = Path(person) / f"ses-{visit}" / "eeg"
@@ -69,6 +69,8 @@ def execute(job):
             with log_path.open("w") as log, redirect_stdout(log), redirect_stderr(log):
                 ns = pipeline(kit, output)
                 ns["LINE_FREQ"] = line_freq
+                if configure is not None:
+                    configure(ns)
                 detail = ns["run_pipeline"](path, partial)
         elif summary_path.is_file():
             previous = json.loads(summary_path.read_text())

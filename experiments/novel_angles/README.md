@@ -1,8 +1,38 @@
 # EEG biometric follow-up: chronological verification under eye-state shift
 
-This is an exploratory study on OpenNeuro ds007176 v1.0.1, not a rerun or replacement of the original pipeline. See [REPORT.md](REPORT.md) for prior results, the literature screen, and paper recommendations. The public repository has verified preprocessing FIFs for five participants; the prior full-cohort notebook and rerun kits were not accessible here. The new full-cohort pilot uses exact v1.0.1 raw inputs and a different, lightweight preprocessing pipeline. It **does not** share the original model, features, scores, or numerical baseline. Do not compare numbers across pipelines as method deltas.
+See [REPORT.md](REPORT.md) for the original benchmark, cross-condition pivot, and two rounds of exploratory work. The Round 1 pilot uses exact v1.0.1 raw inputs and lightweight preprocessing; it does not share the original model, features, scores, or numerical baseline. Round 2 uses the supplied preprocessing notebook and rerun kits. Do not compare numbers across pipelines as method deltas.
 
-## Reproduce
+## Round 2: verified preprocessing
+
+Use the supplied reproduction kit's pinned preprocessing environment (MNE 1.12.1, PyPREP 0.7.1, PyWavelets 1.8.0). Put the supplied notebook next to the extracted kit scripts; `recipe.py` validates the notebook hash and delegates preprocessing to the kit's notebook loader. Use an output directory outside the checkout and keep it private; only aggregate results belong in Git.
+
+```sh
+export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
+umask 077
+# Run from experiments/novel_angles with the kit's pinned preprocessing Python.
+python -B fetch_raw.py ~/ds007176-v1.0.1
+python -B recipe.py "$KIT" ~/ds007176-v1.0.1 ~/eeg-verified-loop2 \
+  --reference ../../preprocessed_dataset --reference-only
+python -B recipe.py "$KIT" ~/ds007176-v1.0.1 ~/eeg-verified-loop2 \
+  --reference ../../preprocessed_dataset
+python -B fetch_raw.py ~/ds004148-v1.0.1 --dataset ds004148
+python -B recipe.py "$KIT" ~/ds004148-v1.0.1 ~/eeg-verified-restcog --restcog
+```
+
+Both raw checkouts must be at the exact v1.0.1 revisions validated by `fetch_raw.py`. The recipe runner emits aggregate validation and private per-recording logs; rerunning reuses completed FIFs. The original evaluation kit reads the generated FIFs and JSON logs, and the cross-condition kit accepts the generated FIF root as its dataset argument. Follow the kits' evaluation instructions separately. See [LOOP2_PROTOCOL.md](LOOP2_PROTOCOL.md) for the prespecified follow-up controls.
+
+With the cross-condition kit's **observed** aggregate `paired-contrasts.csv` at `$ANCHOR`, run the locked analysis using the kit's evaluation Python:
+
+```sh
+python -B loop2.py ds007176 ~/eeg-verified-loop2 ~/ds007176-v1.0.1 \
+  "$CROSS_CONDITION_KIT" "$ANCHOR" loop2-ds007176.json
+python -B loop2.py ds004148 ~/eeg-verified-restcog ~/ds004148-v1.0.1 \
+  "$CROSS_CONDITION_KIT" "$ANCHOR" loop2-ds004148.json
+```
+
+The runner refuses to score either cohort unless the observed SVM mismatch and mixed-enrollment FRR contrasts round to 19.4 and 5.5 percentage points. The output contains only aggregate rates, subject-bootstrap intervals, and criterion decisions; rates are fractions unless a field is labeled `pp`.
+
+## Reproduce the Round 1 pilot
 
 Tested using Python 3.12, MNE 1.13.2, NumPy 2.5.5, SciPy 1.18.1 and scikit-learn 1.9.1. Use a clean Python environment with those versions. Set BLAS thread counts to avoid oversubscription; allow about 18 GiB for raw files and under 1 GiB for the feature cache. Run from this directory:
 

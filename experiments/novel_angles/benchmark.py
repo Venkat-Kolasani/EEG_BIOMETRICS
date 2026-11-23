@@ -85,9 +85,9 @@ def probe_features(x, mode):
         return x[:, :, TASKS.index(mode)].reshape(*x.shape[:2], BLOCKS, 2, -1).mean(axis=3)
     ce, oe = x[:, :, 0], x[:, :, 1]
     if mode == "pair-mean":
-        return (ce[:, :, :BLOCKS] + oe[:, :, :BLOCKS]) / 2
+        return (ce + oe) / 2
     if mode == "pair-delta":
-        return ce[:, :, :BLOCKS] - oe[:, :, :BLOCKS]
+        return ce - oe
     if mode == "pair-joint":
         return np.concatenate([probe_features(x, "pair-mean"), probe_features(x, "pair-delta")], axis=-1)
     if mode == "ce-repeat-delta":

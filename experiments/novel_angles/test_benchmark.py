@@ -29,8 +29,17 @@ class BenchmarkTest(unittest.TestCase):
         x[:, :, 0, :, 0] = np.arange(24) * 2
         x[:, :, 1, :, 0] = np.arange(24) * 2 - 5
         np.testing.assert_array_equal(probe_features(x, "CE")[0, 0, :, 0], np.arange(12) * 4 + 1)
-        np.testing.assert_array_equal(probe_features(x, "pair-delta"), np.full((2, 4, 12, 1), 5))
+        np.testing.assert_array_equal(probe_features(x, "pair-delta"), np.full((2, 4, 24, 1), 5))
         np.testing.assert_array_equal(probe_features(x, "ce-repeat-delta"), np.full((2, 4, 12, 1), -2))
+
+    def test_paired_mean_and_pooled_single_state_use_identical_windows(self):
+        windows = 1 << np.arange(48, dtype=np.int64)
+        x = windows.reshape(1, 1, 2, 24, 1)
+        paired = probe_features(x, "pair-mean")
+        single = np.concatenate([probe_features(x, state) for state in ("CE", "OE")], axis=2)
+        self.assertEqual(paired.shape, single.shape)
+        self.assertEqual(int(paired.sum() * 2), int(windows.sum()))
+        self.assertEqual(int(single.sum() * 2), int(windows.sum()))
 
     def test_whitening_maps_reference_to_zero(self):
         reference = np.array([[2, .2], [.2, 1]])

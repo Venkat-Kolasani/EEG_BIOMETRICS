@@ -23,9 +23,13 @@ SUBSETS = {
 
 def load(root):
     files = {}
+    late_visits = {}
     for path in sorted(root.glob("sub-*.npz")):
         person, visit, task = path.stem.split("_")
-        visit = "LATE" if visit in ("V3", "V4") else visit
+        if visit in ("V3", "V4"):
+            if late_visits.setdefault(person, visit) != visit:
+                raise ValueError(f"Expected exactly one later visit for {person}")
+            visit = "LATE"
         key = person, visit, task
         if key in files:
             raise ValueError(f"Duplicate recording {key}")
@@ -47,10 +51,11 @@ def load(root):
                 if name in ("cov", "imag"):
                     x = x[..., indices]
                 arrays[name].append(x)
-    return people, channels, {
+    features = {
         name: np.stack(items).reshape(len(people), 4, 2, MIN_EPOCHS, *items[0].shape[1:])
         for name, items in arrays.items()
     }
+    return people, channels, {**features, "late_visits": np.array([late_visits[s] for s in people])}
 
 
 def roles(n):
@@ -137,7 +142,14 @@ def representations(arrays, channels, ref, feature, subset, alignment):
         if alignment == "condition":
             reference = cov[ref, :2].mean(axis=(0, 1, 3), keepdims=True)
         elif alignment == "visit-condition":
-            reference = cov[ref].mean(axis=(0, 3), keepdims=True)
+            historical = tangent(cov[:, :3], cov[ref, :3].mean(axis=(0, 3), keepdims=True))
+            late = np.full_like(historical[:, :1], np.nan)
+            visit = arrays["late_visits"]
+            for label in np.unique(visit[ref]):
+                donors = ref[visit[ref] == label]
+                reference = cov[donors, 3:4].mean(axis=(0, 3), keepdims=True)
+                late[visit == label] = tangent(cov[visit == label, 3:4], reference)
+            return np.concatenate([historical, late], axis=1)
         else:
             reference = cov[ref, :2].mean(axis=(0, 1, 2, 3))
         return tangent(cov, reference)
@@ -235,6 +247,9 @@ def run(people, channels, arrays, settings, draws):
                     if setting.adaptation and label != "late-tail":
                         continue
                     population = np.concatenate([targets, test])
+                    if visit == 3 and setting.alignment == "visit-condition":
+                        visits = arrays["late_visits"]
+                        population = population[np.isin(visits[population], visits[ref])]
                     current = templates
                     if setting.adaptation:
                         current = templates.copy()

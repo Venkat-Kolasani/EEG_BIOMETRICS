@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from benchmark import FAR, ledger, metric, probe_features, roles, tangent, threshold
+from benchmark import FAR, ledger, metric, probe_features, representations, roles, tangent, threshold
 
 
 class BenchmarkTest(unittest.TestCase):
@@ -44,6 +44,17 @@ class BenchmarkTest(unittest.TestCase):
     def test_whitening_maps_reference_to_zero(self):
         reference = np.array([[2, .2], [.2, 1]])
         np.testing.assert_allclose(tangent(reference, reference), np.zeros(3), atol=1e-12)
+
+    def test_late_alignment_only_uses_donors_from_the_probe_visit(self):
+        cov = np.ones((4, 4, 2, 24, 1, 1))
+        cov[1, 3] = 4
+        cov[2:, 3] = 2
+        arrays = {"cov": cov, "late_visits": np.array(["V3", "V4", "V3", "V4"])}
+        aligned = representations(arrays, ["Cz"], np.array([0, 1]), "cov", "all", "visit-condition")
+        np.testing.assert_allclose(aligned[2:, 3, 0, 0, 0], np.log([2, .5]))
+        unsupported = representations(arrays, ["Cz"], np.array([0]), "cov", "all", "visit-condition")
+        self.assertTrue(np.isnan(unsupported[3, 3]).all())
+        self.assertTrue(np.isfinite(unsupported[3, :3]).all())
 
 
 if __name__ == "__main__":

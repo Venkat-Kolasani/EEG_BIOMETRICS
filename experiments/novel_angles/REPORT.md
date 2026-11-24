@@ -334,6 +334,12 @@ See [the evidence audit](CLAIM_AUDIT.md#round-5-evidence).
 
 **Publication priorities after Round 6:** (1) equal-usable-time eye-state pairing as a longitudinal discrimination benchmark, with the limits on false-accept inference integral to the result; (2) a prospective validation with fully separate days, counterbalanced probe order and independent impostor recruitment; (3) threshold and fusion comparisons as secondary results, not as new authentication algorithms. Round 6 strengthens the first direction but does not establish that the design is unprecedented.
 
+## Round 7: waveform architectures and fusion
+
+[Round 7 results](ROUND7_RESULTS.md) compare Braindecode EEGNet v4, ShallowConvNet, DeepConvNet, and calibration-score, feature and eye-state fusion under the locked Round 5 protocol. The study reuses the same prepared recordings; cosine, logistic and Tangent-SVM are recomputed as anchors rather than rerunning every Round 5 model. The results show paired EER, frozen-cutoff FRR/FAR, pairing intervals, gate outcomes and descriptive comparisons with the Round 5 winners.
+
+Treat fusion that lowers a paired EER point estimate as a candidate for external validation, not as evidence of secure operation or independent superiority. The stacker learns from the cutoff calibration visit, so its results test transfer to distinct later impostors, not a new validation of its calibration fit. See the [claim audit](CLAIM_AUDIT.md#round-7-evidence) for fit scope and provenance.
+
 ## Recommendation and stop/go criteria
 
 **Research go; deployment no-go.** Pursue a methods benchmark: *Eye-state pairing for longitudinal EEG verification: improved discrimination without reliable false-accept control*. At equal usable EEG duration, paired probes lowered cosine EER in both Loop 2 cohorts and both sensitivity analyses; neither scorer controlled FAR. Present Dortmund and WBCIC-SHU as checks on separate design limits, not additional locked replications. Combine #1 and #2; keep the original study and mixed-enrollment pivot as separate comparators. The SVM disagreement, nulls, and alignment trade-offs belong in the paper. This is a credible journal direction, not proof of better authentication, equal elapsed time, alpha-specific physiology, or liveness.

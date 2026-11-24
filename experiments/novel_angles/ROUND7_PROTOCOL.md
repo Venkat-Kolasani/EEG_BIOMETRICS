@@ -1,0 +1,20 @@
+# Round 7: waveform networks and fusion
+
+This is exploratory follow-up on known cohorts, not a new replication. Freeze the new roster before scoring. Retain Round 5 FIFs, visits, role rotations, channel order, claimant enrollment and paired/single probe windows. Fit a separate frozen per-claimant cutoff for each model/arm using only the calibration-impostor visit. Use the same 500 crossed-identity bootstrap draws (seed 177) and EER, FRR, FAR and pairing gates. Model primary seed is 42; no new seed sensitivity or late-visit tuning.
+
+- **Waveform:** Braindecode 1.2.0 EEGNet (EEGNetv4), ShallowFBCSPNet and Deep4Net, using Round 5's five-second 50 Hz waveform tensor (250 samples). EEGNet temporal/separable kernels are 25/7 samples; use its constrained classification head. Shallow temporal kernel, mean pool, and stride are 5/15/3. Deep temporal kernels are 2 samples in each block, with native 3-sample max pools and strides. All other architectural arguments use library defaults. Fit on reference identities' enrollment rows only with eight epochs of Adam (0.001, batch 64), in microvolts. Discard the identity head; L2-normalize penultimate embeddings, average within two-window attempts, and compare to the claimant's average enrollment embedding by cosine. These are verification adaptations, not original task reproductions. No extra TCNet/Conformer in this CPU-only round.
+- **Score fusion:** Combine cosine, logistic, Tangent-SVM and EEGNet using per-claimant, per-arm empirical calibration-impostor ranks. Rank mean sums integer ranks before one division, preserving ties. The stacker uses the same rank features, per-claimant balanced logistic regression (C=1), and only the calibration visit's claimant genuine and calibration-impostor scores. The fused cutoff uses the same calibration impostors used to fit the stacker; these are in-sample calibration scores, not a separate validation set. Final impostors and late recordings never fit a transform, classifier or cutoff.
+- **Feature fusion:** Form one vector from existing log-relative band powers, strict upper-triangle alpha imaginary coherency, and the log-Euclidean covariance vector centered on reference enrollment. Combine two windows as in Round 5. Scale each block using only claimant and donor enrollment, then divide the standardized block by the square root of its feature count. Fit claimant-specific logistic regression (C=1).
+- **Eye-state fusion:** Fit separate logistic scorers to CE and OE enrollment windows using equal fractions of the original mixed enrollment and its donor slots. Compare with one joint model on the same mixed enrollment. Both variants average per-window scores: consecutive windows within the same state or one from each state at matching retained ranks. Their pairing contrast therefore reuses the same windows and time in each arm. The two separate binary fits each see half the enrollment positives and negatives that the joint fit sees; this is part of the design, not an isolated state-label ablation.
+- **Anchors:** Recompute locked cosine, logistic and Tangent-SVM paired/single metrics as a compatibility check. Compare each new model descriptively to the saved cohort-specific Round 5 paired-EER winner (same protocol; not a new independent sample). Do not rerun the rest of the Round 5 roster.
+
+Run from this directory with Python 3.12, Braindecode 1.2.0, PyTorch and torchaudio 2.10.0+cpu, MNE 1.13.2, NumPy 2.5.4, SciPy 1.18.1, and scikit-learn 1.9.1. Use the kit and prepared cohort FIF roots from Round 5:
+
+```sh
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python -B round7.py \
+  "$cohort" "$fif_root" "$kit_root" "round7-$cohort.json" --workers 2 --scorers 1
+python -B render_round7.py
+python -B -m unittest discover -s . -v
+```
+
+The four cohort slugs are `ds007176`, `ds004148`, `ds005385`, and `wbcic-shu`. On Linux, `--scorers` above 1 parallelizes independent rotations and requires the first merged ledger to match the same rotation run serially.

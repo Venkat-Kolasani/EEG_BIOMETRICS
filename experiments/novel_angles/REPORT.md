@@ -141,7 +141,17 @@ Later-date results, in % for arm rates and percentage points (pp) for paired-min
 
 Cosine met the directional EER and FRR criteria; SVM met neither. Neither met the FAR margin or ≤1% held-out FAR upper bound (paired upper bounds: 25.24% cosine, 23.19% SVM). On the calibration date, paired-probe FAR on identities not used to set thresholds was already 15.63% cosine and 16.25% SVM. These are sensitivity results on a small selected subset with only two calibration identities per rotation, not an unchanged replication or evidence that the durations are interchangeable.
 
-## Round 3: novelty verification
+## Fresh novelty recheck (24 November 2026)
+
+**Partially covered; the full benchmark was not found in the sources screened.** The [standalone literature review](NOVELTY_REVIEW.md) records the component verdicts, closest papers and DOI links, exact search queries, citation trails, and limitations from an independent pass.
+
+- **Published:** pooling EO and EC samples (Lai); combining both states as an EC−EO representation (Choi); multi-paradigm, cross-session authentication (Rakshe); and later-session verification (Maiorana). The Rakshe code checked stacks separate task epochs; it does not construct one paired EO+EC probe from the same windows used by the comparison arm.
+- **Published in open-set identification; partial precedent for our 1:1 endpoint:** [the 2026 M3CV study](https://doi.org/10.3390/s26175471) calibrates rejection on development unknowns and measures realized false-positive identification on different final unknowns. It also analyzes session transfer. Its max-score rejection across enrolled identities is not per-claimant verification FAR. [The cross-session spectral study](https://doi.org/10.3390/s26154811) instead sweeps blind-test scores retrospectively for verification and explicitly does not fix an operational cutoff.
+- **Not found in the screened material:** later-session 1:1 verification directly comparing EO+EC averaging to EO+EO/EC+EC averages from the **same retained windows**, with the same usable EEG time and attempt count, and reporting EER plus FRR/FAR at frozen thresholds calibrated on disjoint identities. The benchmark is the claim; state fusion, fixed window lengths, and threshold calibration are not.
+
+The review keeps paired probes ranked first as a benchmark, not as a new fusion technique or a proven authenticator. Search coverage was incomplete (including abstracts only for some conference work and sparse indexing of recent preprints). The full-budget external three-day replication gap and unmet FAR criteria remain.
+
+## Round 3: original novelty screen
 
 **Verdict: related work is published; the exact endpoint was not found.** Combining, pooling, or contrasting EO and EC in biometric recognition is not new. Neither is testing multi-paradigm verification. In the material screened, we did not find an earlier comparison that simultaneously (1) averages one EO and one EC segment in each **verification attempt**, (2) compares against single-state attempts made from the **same windows and with the same total usable duration and attempt count**, and (3) tests later recordings with thresholds frozen on separate calibration identities and unseen test impostors. That is a differentiated **benchmark**, not a priority claim about EO/EC fusion or evidence that this design is absent from unindexed work.
 

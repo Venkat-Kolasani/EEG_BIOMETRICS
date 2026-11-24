@@ -4,6 +4,19 @@
 
 **How to read this audit:** *Fresh check* means the calculation or direct comparison was rerun. *Cached preparation* means the prepared files and recorded preparation evidence were reused; it does not mean another full raw-data preprocessing run. *Source check* means protocol, source code, or a publication was inspected rather than an empirical calculation. *Historical* means the statement was preserved from an earlier run, not rerun here. Values used in prose are rounded from the underlying aggregates, not subtracted after rounding. Nothing was tuned to produce a match.
 
+## Round 7 evidence
+
+**Fresh scoring, cached preparation.** [Protocol](ROUND7_PROTOCOL.md), [results](ROUND7_RESULTS.md), and aggregate outputs for [ds007176](round7-ds007176.json), [RestCog](round7-ds004148.json), [Dortmund](round7-ds005385.json), and [WBCIC-SHU](round7-wbcic-shu.json). These compare new models under the original locked windows, role splits, and frozen cutoffs, not on independent new cohorts.
+
+**Waveform scale correction:** The pinned preparation notebook's cell 24 (`step12_normalize`) standardizes each channel over retained epochs and time; cell 28 calls it before saving. Inspection of five prepared FIFs per cohort verified channel means near zero and standard deviations near one over those axes. The initial run (`9a25203`) multiplied the waveform values by a million before fitting and, separately, before each embedding pass. The rerun passes the standardized, resampled values unchanged through `round7.py:waveform_tensor`. This affects all three waveform backbones and both score fusions that use EEGNet. The fit-and-embedding regression test observes the actual network inputs.
+
+| Claim | Exact field or source |
+|---|---|
+| Fresh waveform and fusion scores, intervals, and gates | `metrics.<model>/<single or pair>/late`, `comparisons.<model>/pair-minus-single`, and `criteria.<model>`. The table reads the paired point estimates and pairing EER interval from these aggregates via `render_round7.py`. |
+| Compatibility with Round 5 | In `round7.py:summarize`, the full paired and single late metric and pairing contrast objects for Cosine, Logistic, and Tangent-SVM must match Round 5. `round5_best` identifies the saved lowest paired EER for the cohort; `against_round5_best_eer` is an unadjusted point gap, not a significance test. |
+| Fit scope and calibration | `round7.py:waveform_scores` fits encoders on reference enrollment, with claimant templates from claimant enrollment; `feature_scores,state_scores` use only early claimant and donor enrollment for model fit; `score_fusion` uses only calibration-impostor ranks and matching claimant genuine scores from the calibration visit for stacker fitting. `round4.py:variant_rows` computes frozen cutoffs on the calibration impostors. Regression tests perturb late, final-test and nonmatching claimant stacker inputs; no independent calibration split is claimed for the fitted stacker. |
+| Process determinism check | `rotation1_ledger_sha256`, `scorers` and `serial_anchor_matched` record the byte-level ledger hash and whether the parallel run matched a serial recomputation of its first rotation. Only the first rotation is independently repeated per parallel cohort. |
+
 ## Round 6 evidence
 
 [Round 6 protocol](ROUND6_PROTOCOL.md) was committed in `5f494f2` before the follow-up outputs were computed, after Round 5 results were known. [Full results](ROUND6_RESULTS.md) reuse the prepared inputs; no new participants or preprocessing. Cohort outputs: [ds007176](round6-ds007176.json), [RestCog](round6-ds004148.json), [Dortmund](round6-ds005385.json), [WBCIC-SHU](round6-wbcic-shu.json).

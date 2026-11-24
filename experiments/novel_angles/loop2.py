@@ -50,15 +50,18 @@ def recording_features(job):
     return recording_arrays(job, False)
 
 
-def recording_arrays(job, waveform):
+def recording_arrays(job, waveform, connectivity=False):
     path, cap = job
     ep = FEATURE_NS["mne"].read_epochs(path, preload=True, verbose="ERROR")
     if len(ep) < cap or ep.info["sfreq"] != 250 or len(ep.times) != 1251:
         raise ValueError(f"Expected at least {cap} recipe epochs: {path} (got {len(ep)})")
     x = ep.get_data()[:cap]
-    spectral, _, cov, _ = features(x[..., :1250])
+    spectral, _, cov, imag = features(x[..., :1250])
     svm = FEATURE_NS["extract_spectral_features_tensor"](x, sfreq=250)
     arrays = {"spectral": spectral.astype(np.float32), "cov": cov.astype(np.float32), "svm": svm}
+    if connectivity:
+        left, right = np.triu_indices(x.shape[1], k=1)
+        arrays["connectivity"] = imag[:, left, right].astype(np.float32)
     if waveform:
         from scipy.signal import resample_poly
 

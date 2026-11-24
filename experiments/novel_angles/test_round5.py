@@ -2,14 +2,28 @@ from collections import defaultdict
 import unittest
 
 import numpy as np
+from lightgbm import LGBMClassifier
 import torch
 from torch import nn
 
 from round5 import append_rotation, average_probes, logs_of_covariance, spatial_regions
-from round5_models import RAW_MODELS, SIAMESE, StableBinary, contrastive, encoder
+from round5_models import RAW_MODELS, SIAMESE, StableBinary, contrastive, encoder, estimator
 
 
 class Round5Test(unittest.TestCase):
+    def test_lightgbm_small_fits_can_split_without_changing_full_budget(self):
+        def kit_pipeline(name, n_features):
+            return LGBMClassifier(n_estimators=3, verbose=-1)
+
+        ns = {"get_model_pipeline": kit_pipeline}
+        for n, leaf in ((64, 20), (32, 10), (16, 5), (8, 2)):
+            with self.subTest(n=n):
+                x = np.arange(n).reshape(-1, 1)
+                y = (x[:, 0] >= n // 2).astype(int)
+                model = estimator("LightGBM", 1, 42, ns, n).fit(x, y)
+                self.assertEqual(model.min_child_samples, leaf)
+                self.assertGreater(np.unique(model.predict_proba(x)[:, 1]).size, 1)
+
     def test_attempts_use_same_windows_and_frozen_impostor_cutoff(self):
         x = np.arange(4 * 3 * 2 * 4).reshape(4, 3, 2, 4, 1)
         subjects = np.array([2, 0, 3])

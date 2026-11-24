@@ -80,7 +80,7 @@ class StableBinary:
         return np.column_stack((1 - p, p))
 
 
-def estimator(name, n_features, seed, ns):
+def estimator(name, n_features, seed, ns, fit_rows=None):
     if name == "Shrinkage-LDA":
         return ShrinkageLDA()
     if name == "Logistic":
@@ -96,6 +96,9 @@ def estimator(name, n_features, seed, ns):
         model.random_state = seed
     if name in ("ExtraTrees", "LightGBM", "XGBoost"):
         model.set_params(n_jobs=1)
+    if name == "LightGBM" and fit_rows is not None:
+        original = model.get_params()["min_child_samples"]
+        model.set_params(min_child_samples=min(original, max(2, original * fit_rows // 64)))
     return model
 
 
@@ -106,23 +109,23 @@ def prediction(model, x):
     return score
 
 
-def claimant_scores(x, y, probes, regions, ns, seed, times, core=False):
+def claimant_scores(x, y, probes, regions, ns, seed, times, mode="complete"):
     def predict(name, train, labels, query, timing=None):
         if timing is None:
             timing = name
         def fit():
             scaler = StandardScaler().fit(train)
-            return scaler, estimator(name, train.shape[1], seed, ns).fit(scaler.transform(train), labels)
+            return scaler, estimator(name, train.shape[1], seed, ns, len(train)).fit(scaler.transform(train), labels)
 
         scaler, model = measured(fit, times, timing, "fit")
         return measured(lambda: prediction(model, scaler.transform(query)), times, timing, "infer")
 
-    if core:
+    if mode == "core":
         names = (*KIT_BASE[:5], *SPECTRAL_ML) if seed == 42 else ("Res-MLP",)
         return {name: predict(name, x, y, probes) for name in names}
-    names = (*KIT_BASE, *SPECTRAL_ML) if seed == 42 else KIT_DL
+    names = BASE4 if mode == "lightgbm-review" else ((*KIT_BASE, *SPECTRAL_ML) if seed == 42 else KIT_DL)
     scores = {name: predict(name, x, y, probes) for name in names}
-    if seed == 42:
+    if seed == 42 and mode == "complete":
         regional = [predict("SVM_RBF", x[:, idx], y, probes[:, idx], "Spatial_Fusion") for idx in regions]
         scores["Spatial_Fusion"] = measured(lambda: np.mean(regional, axis=0), times,
                                              "Spatial_Fusion", "infer")
@@ -145,6 +148,9 @@ def claimant_scores(x, y, probes, regions, ns, seed, times, core=False):
     meta = measured(lambda: LogisticRegression(C=1., random_state=seed).fit(
         np.column_stack([oof[name] for name in BASE4]), y), times, "Ens_Stacker", "fit")
     scores["Ens_Stacker"] = measured(lambda: prediction(meta, columns), times, "Ens_Stacker", "infer")
+    if mode == "lightgbm-review":
+        names = ("SVM_RBF", "LightGBM", *FUSION) if seed == 42 else FUSION
+        return {name: scores[name] for name in names}
     return scores if seed == 42 else {name: scores[name] for name in (*KIT_DL, *FUSION)}
 
 

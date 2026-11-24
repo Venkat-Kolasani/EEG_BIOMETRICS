@@ -99,7 +99,7 @@ def embedding_scores(name, enrolled, query, split, windows, seed, times):
     return measured(score, times, name, "infer")
 
 
-def compare_rotation(arrays, groups, split, windows, budget, ns, regions, seed, times, core=False):
+def compare_rotation(arrays, groups, split, windows, budget, ns, regions, seed, times, mode="complete"):
     claim, reference, cal, test = split
     subjects = np.r_[cal, claim, test]
     spectral = arrays["svm"].reshape(*arrays["svm"].shape[:4], -1)
@@ -110,7 +110,7 @@ def compare_rotation(arrays, groups, split, windows, budget, ns, regions, seed, 
         donor = data[donor_slots(reference, target, budget)]
         input_x = np.vstack((data[target], donor))
         scores = claimant_scores(input_x, labels(budget), query.reshape(-1, query.shape[-1]),
-                                 regions, ns, seed, times, core=core)
+                                 regions, ns, seed, times, mode=mode)
         for name, score in scores.items():
             all_scores[name].append(score.reshape(query.shape[:-1]))
     out = {name: np.stack(scores, axis=-1) for name, scores in all_scores.items()}
@@ -120,8 +120,11 @@ def compare_rotation(arrays, groups, split, windows, budget, ns, regions, seed, 
         template = measured(lambda: enrollment(x, budget)[claim].mean(axis=1), times, "Cosine", "fit")
         out["Cosine"] = measured(lambda: cosine(average_probes(x, subjects, windows), template),
                                  times, "Cosine", "infer")
-        out.update(geometry_scores(arrays["logcov"], split, subjects, windows, budget, times))
-    if not core:
+        if mode != "lightgbm-review":
+            out.update(geometry_scores(arrays["logcov"], split, subjects, windows, budget, times))
+    if mode == "lightgbm-review":
+        return out
+    if mode == "complete":
         wave = arrays["waveform"]
         enrolled = enrollment(wave.reshape(*wave.shape[:4], -1), budget)
         enrolled = enrolled.reshape(len(wave), budget, *wave.shape[4:])
@@ -183,14 +186,18 @@ def spatial_regions(channels):
 
 def run(args):
     start = perf_counter()
+    mode = "lightgbm-review" if args.lightgbm_review else "core" if args.core else "complete"
     n, windows, budget = COHORTS[args.cohort]
     anchor = check_anchor(args.anchor)
     notebook = Path(__file__).resolve().parents[2] / "07_complete_results_all_models_all_sessions.ipynb"
     kit = kit_module(args.kit)
     _, channels, visits, arrays, shortest = load_features(
         args.fifs, args.cohort, args.kit, notebook, args.workers, expected_people=n, windows=windows,
-        enrollment_windows=budget, reader=recording_features if args.core else recording_with_waveforms)
-    arrays["logcov"] = logs_of_covariance(arrays.pop("cov"))
+        enrollment_windows=budget, reader=recording_with_waveforms if mode == "complete" else recording_features)
+    cov = arrays.pop("cov")
+    if mode != "lightgbm-review":
+        arrays["logcov"] = logs_of_covariance(cov)
+    del cov
     seconds = perf_counter() - start
     print(f"Prepared scoring features for {n} participants in {seconds:.1f}s", flush=True)
     grouping = (kit.identity_groups([int(v[-1]) for v in visits[:, -1]]) if args.cohort == "ds007176"
@@ -204,7 +211,7 @@ def run(args):
     for i, split in enumerate(rotations(grouping), 1):
         for seed in ledgers:
             scores = compare_rotation(arrays, visits, split, windows, budget, ns, regions, seed, times[seed],
-                                      core=args.core)
+                                      mode=mode)
             append_rotation(ledgers[seed], scores, split, windows)
         print(f"Scored rotation {i}/20", flush=True)
     first = evaluate(ledgers[42], weights)
@@ -221,7 +228,7 @@ def run(args):
                 seed_summary[key][metric] = {"values": values, "sd": float(np.std(values, ddof=1))}
     first.update(dataset=args.cohort, subjects=n, shortest_recording=shortest, draws=500,
                  probe_windows_per_state=windows, enrollment_windows=budget, anchor_frr_penalties_pp=anchor,
-                 roster="core" if args.core else "complete",
+                 roster=mode,
                  feature_seconds=seconds, timing_seconds=dict(sorted(times[42].items())), seeds=[42, 43],
                  seed_summary=seed_summary, regional_feature_counts=[len(r) for r in regions])
     partial = args.output.with_suffix(".partial")
@@ -236,7 +243,10 @@ def main():
     for label in ("fifs", "kit", "anchor", "output"):
         parser.add_argument(label, type=Path)
     parser.add_argument("--workers", type=int, default=2)
-    parser.add_argument("--core", action="store_true", help="Score only the fixed fast ML/spectral subset")
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument("--core", action="store_true", help="Score only the fixed fast ML/spectral subset")
+    modes.add_argument("--lightgbm-review", action="store_true",
+                       help="Score LightGBM and its three ensembles plus the two comparison anchors")
     run(parser.parse_args())
 
 

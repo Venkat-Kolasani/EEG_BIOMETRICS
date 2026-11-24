@@ -47,6 +47,10 @@ def initialize_features(kit_path, notebook):
 
 
 def recording_features(job):
+    return recording_arrays(job, False)
+
+
+def recording_arrays(job, waveform):
     path, cap = job
     ep = FEATURE_NS["mne"].read_epochs(path, preload=True, verbose="ERROR")
     if len(ep) < cap or ep.info["sfreq"] != 250 or len(ep.times) != 1251:
@@ -55,13 +59,17 @@ def recording_features(job):
     spectral, _, cov, _ = features(x[..., :1250])
     svm = FEATURE_NS["extract_spectral_features_tensor"](x, sfreq=250)
     arrays = {"spectral": spectral.astype(np.float32), "cov": cov.astype(np.float32), "svm": svm}
+    if waveform:
+        from scipy.signal import resample_poly
+
+        arrays["waveform"] = resample_poly(x[..., :1250].astype(np.float32), 1, 5, axis=-1)
     if not all(np.isfinite(v).all() for v in arrays.values()):
         raise ValueError(f"Nonfinite features: {path}")
     return [c.upper() for c in ep.ch_names], len(ep), arrays
 
 
 def load_features(root, cohort, kit, notebook, workers, expected_people=None,
-                  windows=WINDOWS, enrollment_windows=ENROLLMENT_WINDOWS):
+                  windows=WINDOWS, enrollment_windows=ENROLLMENT_WINDOWS, reader=recording_features):
     files = {}
     for path in sorted(root.rglob("*_desc-preproc_epo.fif")):
         match = re.fullmatch(r"(sub-[^_]+)_ses-(V\d+)_task-(CE|OE)_desc-preproc_epo", path.stem)
@@ -88,7 +96,7 @@ def load_features(root, cohort, kit, notebook, workers, expected_people=None,
     arrays = {}
     with ProcessPoolExecutor(workers, mp_context=get_context("spawn"), initializer=initialize_features,
                              initargs=(kit, notebook)) as pool:
-        for i, (names, n_epochs, features_by_name) in enumerate(pool.map(recording_features, jobs)):
+        for i, (names, n_epochs, features_by_name) in enumerate(pool.map(reader, jobs)):
             if channels is None:
                 channels = names
             if channels != names or len(set(names)) != len(names):

@@ -267,6 +267,47 @@ The [protocol](ROUND4_PROTOCOL.md) was committed before new later-visit scores w
 
 The [DOI-backed screen](ROUND4_LITERATURE.md) maps the closest methods to each question. In particular, [Choi et al. 2018](https://doi.org/10.9718/JBER.2018.39.1.43) already used EO/EC alpha changes for EEG authentication. Round 4 does not support a new claim about reactivity-based identity or a new first-ever algorithm. **Overall ranking after Round 4:** the controlled paired-probe benchmark and identity-vs-time comparison remain first and second; identity-maximum calibration belongs with the second as a new paired sensitivity analysis. The original cross-condition comparator remains third. Nothing in the new screen supersedes those directions; the best next addition is an independent-identity risk and abstention design, not tuning these cohorts again.
 
+## Round 5: cross-session model comparison
+
+Cross-session verification is the relevant test for recognizing an enrolled person on a different recording occasion. The [fixed model roster](MODELS.md) includes all 12 original-kit models and ten non-kit comparators. The [new protocol](ROUND5_PROTOCOL.md) preserves the matched single/paired EEG windows and separates the claimant, historical training reference, threshold-setting impostors and held-out impostor identities in each rotation.
+
+### Original kit: historical comparison, not the Round 5 operating point
+
+These are mean fold EERs from the supplied 29-person expected CSV: use configuration `ALL`, or `Spatial_Fusion` for that row. “CS” trains on one session and tests the other three in turn; “LOSO” uses three to train and holds out one. Neither setup is the prospective enrollment/calibration/held-out-impostor design above, so do not interpret its lower EERs as direct improvements on Round 5.
+
+For context, rerunning the kit's **WS-labelled** chronological 80:20 split on the same 29 people yielded SVM EER **10.85%**, compared with **17.10%** in the verified original cross-session folds (**+6.25 percentage points**). The WS-labelled split cuts the pooled, chronologically concatenated recordings, not each visit separately. This is a protocol comparison, not a controlled same-day versus different-day effect.
+
+| Original kit model | CS expected EER | LOSO expected EER | Fresh original-protocol check |
+|---|---:|---:|---|
+| SVM_RBF | 17.10% | 10.02% | All four CS EER folds matched; 29-person LOSO not checked |
+| ExtraTrees | 19.67% | 12.97% | Expected only |
+| LightGBM | 22.25% | 12.99% | Expected only |
+| XGBoost | 23.19% | 13.58% | Expected only |
+| Res-MLP | 18.33% | 12.50% | Expected only |
+| 1D-CNN | 34.00% | 30.23% | Expected only |
+| BiLSTM-Attention | 30.04% | 27.85% | Expected only |
+| SpecFormer | 27.67% | 25.70% | Expected only |
+| Spatial_Fusion | 17.68% | 11.10% | Expected only |
+| Ens_RankAvg | 17.11% | 9.92% | All four LOSO EER folds matched; CS not checked |
+| Ens_SoftVote | 17.43% | 10.05% | Expected only |
+| Ens_Stacker | 40.81% | 10.26% | Expected only |
+
+### Round 5 results available at this checkpoint
+
+The [comparison tables](ROUND5_RESULTS.md) show both arms, 95% subject-bootstrap intervals and fit/inference times for every completed model. The linked aggregates additionally report calibration-unseen results, paired comparisons against cosine and RBF SVM, and the neural and ensemble seed summaries. These are pipeline comparisons, not comparisons of architectures holding input and fit strategy constant.
+
+| Cohort | Completed roster | Lowest paired EER among completed models | Paired EER / FRR / FAR | Paired minus single EER (pp, 95% CI) |
+|---|---|---|---:|---:|
+| ds007176 | 12-model core | Tangent-SVM | 15.06% / 36.93% / 7.15% | −4.23 [−7.09, −1.84] |
+| RestCog | 12-model core | Logistic | 22.45% / 80.97% / 2.46% | −2.10 [−3.13, −0.95] |
+| WBCIC-SHU, modified-duration three-day | Full 22 models | ExtraTrees | 27.20% / 62.92% / 10.21% | −0.94 [−4.11, +4.08] |
+
+Logistic had lower paired EER than RBF SVM in both main cohorts: −2.92 pp [−5.16, −0.49] on ds007176 and −2.19 pp [−3.68, −0.49] on RestCog. The intervals are not adjusted for multiple comparisons. In both core runs, paired EER decreased with intervals below zero for cosine, Logistic, Res-MLP, shrinkage LDA, Siamese and Tangent-SVM. On WBCIC-SHU only cosine showed that directional result. Thus pairing helped across multiple models, but not uniformly.
+
+No completed model met all four gates. RestCog kNN and WBCIC LightGBM met the FAR upper-bound gate in isolation, but rejected 99.01% and 100% of genuine paired attempts, respectively. There is no operating-point winner. The original-wrapper NaN symptom did not reproduce for either neural model on the first original cross-session fold; its cause is unresolved. Round 5 uses stabilized wrappers while leaving the notebook unchanged.
+
+Dortmund's two-day sensitivity analysis and the complete ds007176 and RestCog rosters are pending, as is the original 29-person all-model reproduction. The 12 historical rows above remain the primary reference roster, not evidence that every original result was reproduced. See [the evidence audit](CLAIM_AUDIT.md#round-5-evidence).
+
 ## Recommendation and stop/go criteria
 
 **Research go; deployment no-go.** Pursue a methods benchmark: *Eye-state pairing for longitudinal EEG verification: improved discrimination without reliable false-accept control*. At equal usable EEG duration, paired probes lowered cosine EER in both Loop 2 cohorts and both sensitivity analyses; neither scorer controlled FAR. Present Dortmund and WBCIC-SHU as checks on separate design limits, not additional locked replications. Combine #1 and #2; keep the original study and mixed-enrollment pivot as separate comparators. The SVM disagreement, nulls, and alignment trade-offs belong in the paper. This is a credible journal direction, not proof of better authentication, equal elapsed time, alpha-specific physiology, or liveness.

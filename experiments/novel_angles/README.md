@@ -49,6 +49,31 @@ python -B round4.py ds004148 ~/eeg-verified-restcog \
 These JSONs contain aggregate rates and signed differences as fractions,
 with `point`, `low`, and `high` fields. No participant scores are written.
 
+## Round 5: model comparison
+
+Use the pinned evaluation Python (CPU PyTorch) with
+`OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1`. See
+[MODELS.md](MODELS.md) and the preregistered [protocol](ROUND5_PROTOCOL.md).
+With the same `$CROSS_CONDITION_KIT`, `$ANCHOR`, and prepared FIFs as above:
+
+```sh
+python -B round5.py ds007176 ~/eeg-verified-loop2 \
+  "$CROSS_CONDITION_KIT" "$ANCHOR" round5-ds007176.json
+python -B round5.py ds004148 ~/eeg-verified-restcog \
+  "$CROSS_CONDITION_KIT" "$ANCHOR" round5-ds004148.json
+```
+
+For Dortmund (`ds005385`) and WBCIC-SHU (`wbcic-shu`), pass the existing
+dataset's `scoring-inputs/` path produced by its Round 3 scorer. Do not pass
+the unfiltered preparation directories. JSON fractions report both arms and
+visits, paired bootstrap differences to the two anchors, and model-specific
+timing and neural-seed summaries. The original kit's broader historical
+evaluation runs separately.
+
+The fixed 12-model core CPU milestone uses the same fits, arms and decisions.
+To reproduce it, add `--core` and use a different output such as
+`round5-core-ds007176.json`; it must not replace a complete-roster aggregate.
+
 ## Round 3: Dortmund two-day sensitivity analysis
 
 This is **not** a three-day replication. Use a raw git-annex checkout at

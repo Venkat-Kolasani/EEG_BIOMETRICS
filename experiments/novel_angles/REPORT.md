@@ -227,6 +227,46 @@ Scores reflect the specific claim written in each row, not the broad topic. Nove
 | 12 | **Calendar aging and demographic heterogeneity.** | 2 | 1 | Round 1 ds007176 only | **Not supported here.** Ordinal aging was inconclusive, timing completeness is poor and subgroup tails would be too sparse. [Longitudinal Evaluation of EEG-Based Biometric Recognition](https://doi.org/10.1109/TIFS.2017.2778010) and [demographic stability effects](https://doi.org/10.1109/TIFS.2018.2854728) already cover the general questions. |
 | 13 | **1/f traits or sensor-level phase/coherency as the main novelty.** | 1 | 2 | Round 1 ds007176 only | **Low.** Cross-eye-state aperiodic fingerprinting is explicit in [Demuru and Fraschini](https://doi.org/10.1016/j.compbiomed.2020.103748). [The phase/coherency preprint](https://doi.org/10.64898/2026.10.26.761764) and [time-odd geometry](https://doi.org/10.64898/2026.09.08.749160) cover longitudinal representations closely related to ours. Useful comparators; the short-window approximations here are not direct replications of either approach. |
 
+## Round 4: reducing false accepts at the same EEG budget
+
+The [protocol](ROUND4_PROTOCOL.md) was committed before new later-visit scores were examined. This follow-up uses the same enrollment windows, the same 10 usable seconds per attempt, the same identity rotations and the same held-out visits as Round 2; only scoring or thresholding changes. These are new analyses on previously used cohorts, not new participants or prospective validation. The rerun reproduced both cosine baselines' EER, FRR and FAR point estimates and intervals exactly at both visits in both cohorts. Aggregate results: [ds007176](round4-ds007176.json) (29 people) and [RestCog](round4-ds004148.json) (60 people).
+
+| Cohort / method | Later EER | Later FRR | Later FAR | Upper 95% FAR bound | FAR change vs paired mean, pp [95% interval] | Unseen FAR at calibration visit |
+|---|---:|---:|---:|---:|---:|---:|
+| ds007176 / single-state mix | 32.30% | 81.57% | 2.95% | 4.50% | — | 3.52% |
+| ds007176 / paired mean | 27.60% | 68.00% | 4.42% | 6.87% | Reference | 4.46% |
+| ds007176 / worst-state agreement | 29.72% | 73.60% | 3.37% | 5.35% | −1.05 [−2.84, +0.55] | 4.00% |
+| ds007176 / reactivity penalty | 28.16% | 75.29% | 3.26% | 5.20% | −1.16 [−2.68, +0.00] | 3.85% |
+| ds007176 / repeatability weights | 27.67% | 66.99% | 4.66% | 7.31% | +0.24 [−0.15, +0.75] | 4.68% |
+| ds007176 / identity-maximum cutoff | 27.60% | 74.78% | 2.75% | 4.40% | **−1.67 [−3.18, −0.85]** | 2.81% |
+| RestCog / single-state mix | 33.28% | 85.61% | 2.34% | 3.28% | — | 2.20% |
+| RestCog / paired mean | 28.14% | 76.30% | 2.69% | 3.92% | Reference | 2.51% |
+| RestCog / worst-state agreement | 30.73% | 80.38% | 2.00% | 2.60% | −0.68 [−1.59, +0.07] | 2.12% |
+| RestCog / reactivity penalty | 28.04% | 80.64% | 2.22% | 3.35% | −0.47 [−1.15, +0.10] | 2.21% |
+| RestCog / repeatability weights | 28.18% | 76.35% | 2.77% | 4.03% | +0.08 [−0.02, +0.21] | 2.51% |
+| RestCog / identity-maximum cutoff | 28.14% | 84.72% | 1.44% | 2.35% | **−1.24 [−1.75, −0.90]** | 1.22% |
+
+**Best new result: calibrating on each impostor's highest score reduced false accepts in both cohorts, at the cost of rejecting more genuine attempts.** Compared with paired mean, FRR rose by **6.79 pp [4.97, 8.84]** in ds007176 and **8.42 pp [6.67, 10.40]** in RestCog. EER did not change because the score is identical; only its acceptance cutoff changes. With this small calibration pool the rule puts the cutoff just above the largest observed calibration score for each claimant. This shows how the operating point responds to stricter calibration, not that this cutoff is uniquely better than any equally strict cutoff, nor that it guarantees 1% FAR. The decrease in FAR was the only one with an upper change bound below zero in both cohorts. The ds007176 reactivity interval ends slightly above zero before rounding. Repeatability weights did not reduce FAR in either cohort at the point estimate.
+
+**None met the ≤1% held-out FAR upper-bound gate; no variant qualified for Dortmund/WBCIC-SHU replication.** Those earlier results are unchanged. Every variant also exceeded 1% on unseen people at the calibration visit. The study is still a benchmark for discrimination and the limits of frozen thresholds, not a deployable biometric or a liveness test.
+
+### Reranked Round 4 screen
+
+| Rank | Idea | Novelty / 5 | Evidence / 5 | Journal value after Round 4 |
+|---:|---|---:|---:|---|
+| 1 | Distinct-identity risk control with abstention | 3 | 1 | Best next design question: determine when there are too few independent impostors for the intended claim. Untested. |
+| 2 | Identity-maximum calibration | 3 | 4 | Strongest new result as a companion analysis: replicated FAR/FRR trade-off, not a new authenticator. |
+| 3 | Cross-dataset frozen-cutoff transport | 3 | 1 | Distinct operational endpoint; start with a compatible montage and source-only scoring scale. Untested. |
+| 4 | Worst-state agreement | 2 | 2 | Useful comparator, but the FAR change was inconclusive. |
+| 5 | Enrollment repeatability weighting | 2 | 2 | No observed FAR gain; low standalone value. |
+| 6 | Posterior alpha reactivity penalty | 2 | 4 | FRR worsened versus paired mean in both cohorts; no conclusive FAR gain. Prior EEG reactivity authentication narrows novelty further. |
+| 7 | Sequential decisions at a fixed time budget | 2 | 1 | Useful study if preplanned at transaction level with dependent attempts, not a window-level FAR substitute. Untested. |
+| 8 | Per-window quality weighting | 2 | 1 | Incremental; needs a preplanned quality measure not based on identity. Untested. |
+| 9 | Wrong-person competition with independent reference profiles | 2 | 1 | Incremental alternative to historical score normalization, with clear speaker-biometric precedents. Untested. |
+| 10 | Repeatability-aware left/right EEG contrasts | 1 | 1 | Existing asymmetry biometrics; potential control only. Untested. |
+
+The [DOI-backed screen](ROUND4_LITERATURE.md) maps the closest methods to each question. In particular, [Choi et al. 2018](https://doi.org/10.9718/JBER.2018.39.1.43) already used EO/EC alpha changes for EEG authentication. Round 4 does not support a new claim about reactivity-based identity or a new first-ever algorithm. **Overall ranking after Round 4:** the controlled paired-probe benchmark and identity-vs-time comparison remain first and second; identity-maximum calibration belongs with the second as a new paired sensitivity analysis. The original cross-condition comparator remains third. Nothing in the new screen supersedes those directions; the best next addition is an independent-identity risk and abstention design, not tuning these cohorts again.
+
 ## Recommendation and stop/go criteria
 
 **Research go; deployment no-go.** Pursue a methods benchmark: *Eye-state pairing for longitudinal EEG verification: improved discrimination without reliable false-accept control*. At equal usable EEG duration, paired probes lowered cosine EER in both Loop 2 cohorts and both sensitivity analyses; neither scorer controlled FAR. Present Dortmund and WBCIC-SHU as checks on separate design limits, not additional locked replications. Combine #1 and #2; keep the original study and mixed-enrollment pivot as separate comparators. The SVM disagreement, nulls, and alignment trade-offs belong in the paper. This is a credible journal direction, not proof of better authentication, equal elapsed time, alpha-specific physiology, or liveness.

@@ -4,6 +4,21 @@
 
 **How to read this audit:** *Fresh check* means the calculation or direct comparison was rerun. *Cached preparation* means the prepared files and recorded preparation evidence were reused; it does not mean another full raw-data preprocessing run. *Source check* means protocol, source code, or a publication was inspected rather than an empirical calculation. *Historical* means the statement was preserved from an earlier run, not rerun here. Values used in prose are rounded from the underlying aggregates, not subtracted after rounding. Nothing was tuned to produce a match.
 
+## Round 4 evidence (separate from the PR re-verification below)
+
+**Fresh scoring, cached preparation.** [Protocol](ROUND4_PROTOCOL.md) committed as `bb2d760` before new scores were inspected. [round4-ds007176.json](round4-ds007176.json) and [round4-ds004148.json](round4-ds004148.json) are the outputs from `round4.py` using the same prepared FIF roots and cross-condition anchor as Round 2; `round4-ds007176.log` and `round4-ds004148.log` contain `Scored rotation 20/20` and the four FAR summaries. No preprocessing, SVM refit, Dortmund or WBCIC-SHU re-scoring, or new participant recruitment occurred.
+
+| Claim in the Round 4 report | Exact field or source and check |
+|---|---|
+| Cohorts, usable attempt time, enrollment and calibration roles, resampling | JSON `dataset`, `subjects` (29 and 60), `draws` (500), `anchor_frr_penalties_pp`; `round4.py:ledgers,variant_scores,variant_rows,summarize` and imported `loop2.py:mixed_probes,training_samples,rotations,standardized,boot_metrics` show the fixed two five-second windows, budgets, disjoint roles, frozen cutoffs and seed 177. |
+| Original paired and single-state cosine baselines reproduced | Fresh comparison: equality of all four `metrics.{pair or single}/{cal-unseen or late}` objects per cohort to committed Loop 2 `metrics.cosine/{cal-unseen or late}/{pair or single}`; includes EER, FRR, FAR point estimates and both interval bounds. |
+| Later EER, FRR, FAR and the FAR upper bound in all twelve report rows | `metrics.<method>/late.{eer,frr,far}.point` and `metrics.<method>/late.far.high`. Report labels map to `single`, `pair`, `worst-state`, `reactivity`, `repeatability`, `identity-maximum`. Multiply by 100 and round to two decimals. |
+| FAR change and interval vs paired mean, including reactivity rounding near zero | `contrasts.<method>/minus-pair.far.{point,low,high}`, each multiplied by 100 (percentage points). The ds007176 `reactivity/minus-pair` FAR `high` is positive at full precision. `criteria.<method>.far_gain_vs_pair` is true only for `identity-maximum` in both cohorts. |
+| All rows' unseen calibration-visit FAR; every variant above 1% at that visit | `metrics.<method>/cal-unseen.far.point`, multiplied by 100. `cal-unseen` uses final-test impostors at the calibration visit; those identities never set the threshold in that rotation. |
+| Identity-maximum cutoff FRR increases, unchanged EER and no 1% compliance | `contrasts.identity-maximum/minus-pair.frr.{point,low,high}` (ds007176 +6.79 pp [4.97, 8.84]; RestCog +8.42 pp [6.67, 10.40]); the corresponding `eer` difference is zero. `round4.py:variant_rows` and `benchmark.py:threshold` show the empirical order-statistic rule and next representable cutoff above the maximum at these calibration sizes. |
+| No replication candidate or passed FAR control gate | Both outputs: all `criteria.<method>.far_control` and `criteria.<method>.replication_candidate` are false. Other margin/direction checks and intervals against the matched single-state comparator are in `criteria.<method>` and `contrasts.<method>/minus-single`. These are conditional bootstrap results, not guarantees for new cohorts. |
+| Ten research directions, relative rankings and prior-art limits | [DOI-backed screen](ROUND4_LITERATURE.md), including the 2018 reactivity authentication article DOI `10.9718/JBER.2018.39.1.43` (publisher-indexed abstract). Rankings are editorial judgments, not measured rates. No claim of universal first publication. |
+
 ## Rerun outcomes
 
 | Analysis | Evidence compared | Result |

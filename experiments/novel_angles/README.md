@@ -32,6 +32,23 @@ python -B loop2.py ds004148 ~/eeg-verified-restcog ~/ds004148-v1.0.1 \
 
 The runner refuses to score either cohort unless the observed SVM mismatch and mixed-enrollment FRR contrasts round to 19.4 and 5.5 percentage points. The output contains only aggregate rates, subject-bootstrap intervals, and criterion decisions; rates are fractions unless a field is labeled `pp`.
 
+## Round 4: paired-probe FAR follow-up
+
+See [ROUND4_PROTOCOL.md](ROUND4_PROTOCOL.md) for the locked cosine variants
+and decision criteria, and [ROUND4_LITERATURE.md](ROUND4_LITERATURE.md) for the
+prior-art screen. Reuse the verified FIFs, evaluation Python, and observed
+cross-condition anchor from Round 2:
+
+```sh
+python -B round4.py ds007176 ~/eeg-verified-loop2 \
+  "$CROSS_CONDITION_KIT" "$ANCHOR" round4-ds007176.json
+python -B round4.py ds004148 ~/eeg-verified-restcog \
+  "$CROSS_CONDITION_KIT" "$ANCHOR" round4-ds004148.json
+```
+
+These JSONs contain aggregate rates and signed differences as fractions,
+with `point`, `low`, and `high` fields. No participant scores are written.
+
 ## Round 3: Dortmund two-day sensitivity analysis
 
 This is **not** a three-day replication. Use a raw git-annex checkout at

@@ -6,19 +6,39 @@
 
 ## Round 5 evidence
 
-**Fresh scoring, cached preparation.** The [protocol](ROUND5_PROTOCOL.md) was committed in `5a504f1` before scoring. The fixed core execution order was recorded in `3efe077`. The completed aggregates are [ds007176 core](round5-core-ds007176.json), [RestCog core](round5-core-ds004148.json), and [WBCIC-SHU complete](round5-wbcic-shu.json), each with a matching private log stem ending in `.log`; each log records `Scored rotation 20/20` and the completed row count. No new data collection or preprocessing was performed.
+**Fresh scoring, cached preparation.** The [protocol](ROUND5_PROTOCOL.md) was committed in `5a504f1` before scoring; `3efe077` records the fixed core execution order. The complete aggregates are [ds007176](round5-ds007176.json), [RestCog](round5-ds004148.json), [Dortmund](round5-ds005385-parallel.json), [WBCIC-SHU](round5-wbcic-shu.json). All include the 12 kit models and ten comparators; the core checkpoint files are not inputs to the final tables. No new data collection or preprocessing was performed.
+
+For ds007176, RestCog and WBCIC-SHU, the matching private `round5-<dataset>.log` records `Scored rotation 20/20` and `Completed 22 model rows` for the base runs. Dortmund uses the corrected parallel run, with the same split order, code, budgets and seeds as the serial scorer. The private `round5-ds005385-parallel.log` records completion of all 20 rotations and 22 model rows, and a serial/parallel rotation-1 ledger SHA-256 match (`ef397abea5090edf48c5dd747e3e8ae3323f17556383dd61582a1696aa2ee846`). Its targeted serial rescore independently matched all six models' metric, comparison, gate and available seed-summary objects and the cohort metadata; timing is not part of that equality check.
 
 | Claim | Exact field or source |
 |---|---|
-| Cohorts, size, roster, windows, resampling | `dataset`, `subjects`, model keys under `criteria`, `probe_windows_per_state`, `enrollment_windows`, `draws`, `seeds`; `round5.py:run` implements 20 rotations and bootstrap seed 177. Only the two core artifacts record an explicit `roster` field. |
+| Cohorts, size, roster, windows, resampling | `dataset`, `subjects`, `roster`, model keys under `criteria`, `probe_windows_per_state`, `enrollment_windows`, `draws`, `seeds`; `round5.py:run` implements 20 rotations and bootstrap seed 177. |
 | Same windows and disjoint calibration/verification roles | `loop2.py:rotations,mixed_probes,training_samples`, `round5.py:compare_rotation,append_rotation`, `round4.py:variant_rows`. The latter expects subject × visit × attempt × claimant; calibration impostors precede claimant and final impostors. The same cutoff is used for those final identities at both visits. Raw and Siamese encoders fit only reference enrollment windows. |
 | Table values, EER ranking and CIs | `metrics.<model>/<single or pair>/<late or cal-unseen>.<eer or frr or far>.{point,low,high}`, ×100. Ranking among completed models only by `metrics.<model>/pair/late.eer.point`. No unrounded ranking is based on printed values. |
 | Delta and model comparisons | `comparisons.<model>/pair-minus-single` and `comparisons.<model>/minus-<Cosine or SVM_RBF>/<single or pair>` contain paired EER, FRR and FAR deltas and endpoints, ×100 for pp. No adjustment for multiple comparisons. |
-| Direction and gate failures | `criteria.<model>.{directional_eer_gain,frr_margin,far_margin,far_control,all}`. All `all` flags are false; only RestCog kNN and WBCIC LightGBM pass `far_control`. Their high rejection rates come from the paired late `frr.point` field. |
-| Earlier controls intact | All eight cosine and RBF SVM metric objects in each completed aggregate exactly match the corresponding Loop 2 or Loop 3 JSON (`model/arm/visit` in Round 5 versus `model/visit/arm` previously). Verified both arms, both visits, all 24 objects. |
+| Direction and gate failures | `criteria.<model>.{directional_eer_gain,frr_margin,far_margin,far_control,all}`. Directional counts: ds007176 13/22, RestCog 11/22, Dortmund 18/22, WBCIC-SHU 1/22. All-gate passes: Dortmund BiLSTM-Attention. FAR upper-bound passes: RestCog kNN, Dortmund BiLSTM-Attention, Dortmund kNN. Rates are under `metrics.<model>/pair/late`. |
+| High FRR on the only all-gate pass | Dortmund `metrics.BiLSTM-Attention/pair/late.frr.point` gives 95.76%; `comparisons.BiLSTM-Attention/pair-minus-single.eer` gives −4.96 pp [−6.07, −3.87]. `round5.py:evaluate` tests the upper FRR-difference bound against +2 pp, not absolute FRR. |
+| Earlier controls intact | All eight cosine and RBF SVM metric objects per cohort exactly match Loop 2 or Loop 3 (`model/arm/visit` in Round 5 versus `model/visit/arm` previously); two models × two arms × two visits × four cohorts = 32 exact objects. |
 | Timing and variability | `feature_seconds`, `timing_seconds.<model>.{fit,infer}` (primary seed, wall-clock sums on a shared CPU), and `seed_summary.<model>/<arm>/late.<metric>.{values,sd}` (neural and ensemble seeds 42 and 43; not an estimate of between-cohort variation). |
-| Original expanded evaluation | The historical CS/LOSO expected EERs are from the kit `expected/expanded-29-subject.csv` (configuration `ALL`, except `Spatial_Fusion`). The separately matched CS SVM and LOSO rank-average rows are documented below. The other CS/LOSO combinations have no complete fresh aggregate at this checkpoint. |
+| Original expanded evaluation | The expected CS/LOSO EERs come from `expected/expanded-29-subject.csv` (configuration `ALL`, except `Spatial_Fusion`). The independent original all-model rerun was stopped at the user's request without a complete CSV. The non-headline model values were not independently re-verified. |
 | Original WS context and unresolved NaNs | `round5-original-check.log`: `Original 29-person WS-labelled chronological SVM EER = 10.847701149425%`; first CS fold `0/29 nonfinite claimant predictions` for each original wrapper, maximum finite standardized probe magnitude 386.851. This does not reproduce or explain the historical nonfinite failure. |
+
+### LightGBM small-fit correction
+
+The source change is `60ab37d` ([protocol deviation](ROUND5_PROTOCOL.md)). For ds007176, RestCog and WBCIC-SHU, only LightGBM and the three LightGBM-dependent ensembles were replaced in the pre-correction complete aggregates. The targeted logs `round5-lightgbm-<dataset>.log` record `Scored rotation 20/20` and `Completed 6 model rows`. The replaced data are the four models' entries in `metrics`, `comparisons`, `criteria`, `seed_summary` where present, and `timing_seconds` (including `OOF/LightGBM`). The eight cosine and RBF SVM metric objects matched the targeted runs exactly in each cohort.
+
+Only changed later paired point estimates are shown below (percent; dash means unchanged). These are comparisons with the unadjusted aggregate, not paired-minus-single differences. For ds007176 and RestCog, the standalone LightGBM and SoftVote scores, paired contrasts and gate objects matched exactly. Dortmund was scored with the correction already applied; there is no pre-correction Dortmund result in these tables.
+
+| Cohort | Model | Paired EER | Paired FRR | Paired FAR |
+|---|---|---:|---:|---:|
+| ds007176 | Ens_RankAvg | 21.82 → 21.85 | 62.61 → 59.59 | 3.46 → 3.85 |
+| ds007176 | Ens_Stacker | 20.91 → 21.12 | 60.02 → 59.45 | 3.68 → 3.91 |
+| RestCog | Ens_RankAvg | 25.07 → 27.46 | 76.96 → 75.76 | 2.39 → 2.16 |
+| RestCog | Ens_Stacker | 38.01 → 37.07 | 81.27 → 82.40 | 2.39 → 2.29 |
+| WBCIC-SHU | Ens_RankAvg | 36.25 → 31.57 | 65.00 → 67.08 | 8.33 → 8.54 |
+| WBCIC-SHU | Ens_SoftVote | 32.50 → 30.83 | 58.33 → 59.17 | 11.25 → 10.21 |
+| WBCIC-SHU | Ens_Stacker | 41.67 → 39.79 | 72.50 → 72.08 | 12.08 → 10.83 |
+| WBCIC-SHU | LightGBM | 50.00 → 31.25 | 100.00 → 76.67 | 0.00 → 7.08 |
 
 ## Round 4 evidence (separate from the PR re-verification below)
 
@@ -40,7 +60,7 @@
 | Claim | Exact source |
 |---|---|
 | Twelve historical model rows with CS and LOSO mean EER | Supplied reproduction kit `expected/expanded-29-subject.csv`: `Model`, `Config` (`ALL`, or `Spatial_Fusion` for that model), `Protocol`, and arithmetic mean of the four `EER` fold values. The CSV contains 536 rows and no WS protocol rows. Expected values are not fresh measurements. |
-| SVM CS and rank-average LOSO matched; other historical model/protocol combinations not yet verified | Prior fresh file `original-expanded-singlecpu-headlines.json` and its log, detailed in the PR re-verification below. No completed full original-kit aggregate was available for the rest of the table when checked. |
+| SVM CS and rank-average LOSO matched; other historical model/protocol combinations not independently re-verified | Prior fresh file `original-expanded-singlecpu-headlines.json` and its log, detailed in the PR re-verification below. Separate original all-model process was stopped at the user's request; no completed `cross-session-and-loso-detailed.csv` was produced. |
 | SVM WS-labelled EER 10.85%, versus 17.10% CS (+6.25 pp) | Fresh `round5-original-check.log` line `Original 29-person WS-labelled chronological SVM EER = 10.847701149425%`; the +6.25 pp is subtraction from the unrounded cross-session mean in the original headline log. Notebook 07 `make_split` and `SUB_ARR` show that WS cuts pooled chronological recordings rather than holding out part of each visit separately. |
 | No historical NaN reproduced on the original 29-person full-montage first CS fold | Fresh `round5-original-check.log`: both original wrappers report `0/29 nonfinite claimant predictions on CS train S1; max finite standardized probe magnitude=386.851`. This checks reachability on that fold only, not the cause of the historical five-subject failure or the full 29-person table. The Round 5 wrapper adds clipping, a smaller learning rate, and explicit finite/gradient checks without changing Notebook 07. |
 

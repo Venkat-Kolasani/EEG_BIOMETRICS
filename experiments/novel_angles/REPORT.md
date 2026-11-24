@@ -292,21 +292,36 @@ For context, rerunning the kit's **WS-labelled** chronological 80:20 split on th
 | Ens_SoftVote | 17.43% | 10.05% | Expected only |
 | Ens_Stacker | 40.81% | 10.26% | Expected only |
 
-### Round 5 results available at this checkpoint
+### Round 5 results: all four cohorts
 
-The [comparison tables](ROUND5_RESULTS.md) show both arms, 95% subject-bootstrap intervals and fit/inference times for every completed model. The linked aggregates additionally report calibration-unseen results, paired comparisons against cosine and RBF SVM, and the neural and ensemble seed summaries. These are pipeline comparisons, not comparisons of architectures holding input and fit strategy constant.
+The [comparison tables](ROUND5_RESULTS.md) show both arms, 95% subject-bootstrap intervals and fit/inference times for all 22 models in each completed cohort. The aggregates also report calibration-unseen results, paired differences against the cosine and RBF SVM anchors, and the neural and ensemble seed summaries. These compare end-to-end pipelines, not architectures with identical inputs and fit strategies.
 
-| Cohort | Completed roster | Lowest paired EER among completed models | Paired EER / FRR / FAR | Paired minus single EER (pp, 95% CI) |
-|---|---|---|---:|---:|
-| ds007176 | 12-model core | Tangent-SVM | 15.06% / 36.93% / 7.15% | −4.23 [−7.09, −1.84] |
-| RestCog | 12-model core | Logistic | 22.45% / 80.97% / 2.46% | −2.10 [−3.13, −0.95] |
-| WBCIC-SHU, modified-duration three-day | Full 22 models | ExtraTrees | 27.20% / 62.92% / 10.21% | −0.94 [−4.11, +4.08] |
+| Cohort | Participants | Lowest paired EER | Paired EER / FRR / FAR | Paired minus single EER (pp, 95% CI) |
+|---|---:|---|---:|---:|
+| ds007176 | 29 | Tangent-SVM | 15.06% / 36.93% / 7.15% | −4.23 [−7.09, −1.84] |
+| RestCog | 60 | Logistic | 22.45% / 80.97% / 2.46% | −2.10 [−3.13, −0.95] |
+| Dortmund — two-day sensitivity analysis | 128 | Logistic | 19.86% / 83.36% / 1.25% | −3.83 [−4.85, −2.88] |
+| WBCIC-SHU — modified-duration three-day | 10 | ExtraTrees | 27.20% / 62.92% / 10.21% | −0.94 [−4.11, +4.08] |
 
-Logistic had lower paired EER than RBF SVM in both main cohorts: −2.92 pp [−5.16, −0.49] on ds007176 and −2.19 pp [−3.68, −0.49] on RestCog. The intervals are not adjusted for multiple comparisons. In both core runs, paired EER decreased with intervals below zero for cosine, Logistic, Res-MLP, shrinkage LDA, Siamese and Tangent-SVM. On WBCIC-SHU only cosine showed that directional result. Thus pairing helped across multiple models, but not uniformly.
+**Pairing helped some models but not uniformly.** The paired-minus-single EER interval was entirely below zero for ds007176 13/22, RestCog 11/22, Dortmund 18/22, WBCIC-SHU 1/22. Models with that result in every completed cohort: Cosine. These intervals are exploratory and are not adjusted for multiple comparisons.
 
-No completed model met all four gates. RestCog kNN and WBCIC LightGBM met the FAR upper-bound gate in isolation, but rejected 99.01% and 100% of genuine paired attempts, respectively. There is no operating-point winner. The original-wrapper NaN symptom did not reproduce for either neural model on the first original cross-session fold; its cause is unresolved. Round 5 uses stabilized wrappers while leaving the notebook unchanged.
+Logistic regression remained below RBF SVM on paired EER in both main cohorts (Logistic minus RBF SVM, pp with 95% intervals: ds007176 −2.92 [−5.16, −0.49]; RestCog −2.19 [−3.68, −0.49]).
 
-Dortmund's two-day sensitivity analysis and the complete ds007176 and RestCog rosters are pending, as is the original 29-person all-model reproduction. The 12 historical rows above remain the primary reference roster, not evidence that every original result was reproduced. See [the evidence audit](CLAIM_AUDIT.md#round-5-evidence).
+**Operating-point result:** Only BiLSTM-Attention passed all four prespecified gates, in Dortmund's two-day sensitivity analysis. Its paired EER fell by 4.96 pp (95% CI 3.87 to 6.07 pp lower), but at the frozen cutoff it still rejected 95.76% of genuine paired attempts. The FRR gate limits worsening relative to the single-state arm; it does not require low absolute FRR. This is not a usable operating point or a replicated gate pass.
+
+Models that met the 1% FAR upper-bound gate:
+
+| Cohort | Model | Paired FRR | Paired FAR | 95% upper FAR bound |
+|---|---|---:|---:|---:|
+| RestCog | kNN | 99.01% | 0.35% | 0.80% |
+| Dortmund | BiLSTM-Attention | 95.76% | 0.51% | 0.66% |
+| Dortmund | kNN | 99.11% | 0.07% | 0.14% |
+
+The [small-fit LightGBM correction](ROUND5_PROTOCOL.md) changed the WBCIC-SHU standalone row from **50.00% / 100.00% / 0.00%** to **31.25% / 76.67% / 7.08%** (EER / FRR / FAR). The corrected standalone model does not meet the 1% FAR upper-bound gate. The three ensembles use the corrected LightGBM fit; the original-kit notebook and independent reproduction remain unmodified.
+
+The independent original 29-person all-model rerun was stopped at the user's request to prioritize the Round 5 comparison. No complete original-kit CSV was produced. Apart from the previously checked SVM CS and rank-average LOSO headlines, the original expected model values were not independently re-verified. The original-wrapper NaN symptom did not reproduce for either neural model on the first original CS fold; its cause is unresolved. Round 5 uses stabilized wrappers without changing the notebook.
+
+See [the evidence audit](CLAIM_AUDIT.md#round-5-evidence).
 
 ## Recommendation and stop/go criteria
 

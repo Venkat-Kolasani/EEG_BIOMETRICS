@@ -3,8 +3,9 @@ import unittest
 import numpy as np
 
 from round4 import variant_rows
-from round6 import (adjustments, audited_rotations, audited_rows, calibration_percentiles, cp_upper,
-                    far_power, logistic_fit_data, meta_analysis, minimum_n, standard_error, standardized)
+from round6 import (adjustments, audited_rotations, audited_rows, calibration_ranks, cp_upper,
+                    far_power, fused_calibration_score, logistic_fit_data, meta_analysis, minimum_n,
+                    standard_error, standardized)
 
 
 class Round6Test(unittest.TestCase):
@@ -57,14 +58,27 @@ class Round6Test(unittest.TestCase):
         changed[1:] += 100
         after = variant_rows(changed, split, "attempt")
         np.testing.assert_array_equal(before["late"][:, 4], after["late"][:, 4])
-        np.testing.assert_array_equal(calibration_percentiles(x, 1)[0], calibration_percentiles(changed, 1)[0])
-        self.assertEqual(calibration_percentiles(x, 1)[0, 0, -1, 0], 1)
+        np.testing.assert_array_equal(calibration_ranks(x, 1)[0], calibration_ranks(changed, 1)[0])
+        self.assertEqual(calibration_ranks(x, 1)[0, 0, -1, 0], 4)
 
     def test_fusion_percentiles_use_inclusive_ties_and_claimant_specific_ranks(self):
         scores = np.array([[[[1, 10], [2, 10], [2, 20], [4, 30]],
                             [[0, 9], [2, 10], [3, 15], [5, 31]]]])
-        result = calibration_percentiles(scores, 1)
-        np.testing.assert_array_equal(result[0, 1], [[0, 0], [.75, .5], [.75, .5], [1, 1]])
+        result = calibration_ranks(scores, 1)
+        np.testing.assert_array_equal(result[0, 1], [[0, 0], [3, 2], [3, 2], [4, 4]])
+
+    def test_fused_scores_keep_equal_rank_sums_tied(self):
+        first, second = np.indices((13, 13)).reshape(2, -1)
+        def scores(ranks):
+            result = np.zeros((16, 2, 12, 1))
+            result[0, 0, :, 0] = np.arange(1, 13)
+            result[1:, 1, :, 0] = np.pad(ranks, (0, 11)).reshape(15, 12)
+            return result
+
+        fused = fused_calibration_score(scores(first), scores(second), 1)
+        late = fused[1:, 1].ravel()[:first.size]
+        np.testing.assert_array_equal(late, (first + second) / 24)
+        self.assertEqual(len(np.unique(late)), 25)
 
     def test_meta_analysis_consistent_effects(self):
         effect = dict(point=-.05, low=-.07, high=-.03)

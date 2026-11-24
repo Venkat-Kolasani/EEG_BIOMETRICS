@@ -111,7 +111,7 @@ text = block(
           [(m, *[f"{pct(d['42'])} → {pct(d['43'])} ({abs(100*(d['43']-d['42']))/math.sqrt(2):.2f})"
                  for d in (base["seeds"][slug][m] for slug,_ in inputs)]) for m in seed_models]),
     "## New ideas",
-    "**Score fusion.** Average the calibration-percentile ranks of cosine and logistic scores on the paired attempts, then set a frozen cutoff on the same calibration impostors used to fit the percentile maps. Negative differences favor fusion. The repeated score count is rows in excess of distinct fused scores, pooled across fits; the empirical ranks create ties.",
+    "**Score fusion.** Add the two integer calibration ranks before dividing by twice the common calibration count, so equal rank sums stay tied. Set the frozen cutoff on the same calibration impostors used to fit the percentile maps. Negative differences favor fusion. The repeated score count is rows in excess of distinct fused scores, pooled across fits.",
     table(("Cohort","Fused EER / FRR / FAR","EER Δ vs cosine, pp","EER Δ vs logistic, pp","Repeated score rows / total"),fusion_rows),
     table(("Cohort","Constituent","Fusion − constituent FRR, pp","Fusion − constituent FAR, pp"),fusion_operating_rows),
     f"**Pooling across cohorts.** Cosine random-effects Δ EER: {delta(meta)} pp; I² {pct(meta['i2'])}, Q {meta['q']:.2f}. This uses different durations and visit schedules and approximate standard errors, and there are few cohorts. The pooled value summarizes the direction and scale of what was already observed, not an external replication.",

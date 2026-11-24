@@ -117,9 +117,14 @@ def targeted_scores(arrays, split, widths, full, budget):
                       "Logistic": logistic, "Tangent-SVM": geometry["Tangent-SVM"]}
 
 
-def calibration_percentiles(scores, ncal):
+def calibration_ranks(scores, ncal):
     return np.stack([np.searchsorted(np.sort(scores[:ncal, 0, :, j].ravel()), scores[..., j], side="right")
-                     / scores[:ncal, 0, :, j].size for j in range(scores.shape[-1])], axis=-1)
+                     for j in range(scores.shape[-1])], axis=-1)
+
+
+def fused_calibration_score(cosine_scores, logistic_scores, ncal):
+    rank_sum = calibration_ranks(cosine_scores, ncal) + calibration_ranks(logistic_scores, ncal)
+    return rank_sum / (2 * ncal * cosine_scores.shape[2])
 
 
 def audited_rows(scores, split):
@@ -208,8 +213,8 @@ def run(args):
             for arm, index in (("single", slice(None, width)), ("pair", slice(width, None))):
                 arm_scores = {m: v[:, :, index] for m, v in scores.items()}
                 if width == full and arm == "pair":
-                    arm_scores[FUSED] = np.mean([calibration_percentiles(arm_scores[m], len(split[2]))
-                                                 for m in ("Cosine", "Logistic")], axis=0)
+                    arm_scores[FUSED] = fused_calibration_score(
+                        arm_scores["Cosine"], arm_scores["Logistic"], len(split[2]))
                 for model, score in arm_scores.items():
                     for visit, ledger in audited_rows(score, split).items():
                         if visit == "late":

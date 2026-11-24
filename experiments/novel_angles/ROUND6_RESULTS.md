@@ -107,23 +107,23 @@ Paired EER, seed 42 → 43 (sample SD in percentage points). The largest observe
 
 ## New ideas
 
-**Score fusion.** Average the calibration-percentile ranks of cosine and logistic scores on the paired attempts, then set a frozen cutoff on the same calibration impostors used to fit the percentile maps. Negative differences favor fusion. The repeated score count is rows in excess of distinct fused scores, pooled across fits; the empirical ranks create ties.
+**Score fusion.** Add the two integer calibration ranks before dividing by twice the common calibration count, so equal rank sums stay tied. Set the frozen cutoff on the same calibration impostors used to fit the percentile maps. Negative differences favor fusion. The repeated score count is rows in excess of distinct fused scores, pooled across fits.
 
 | Cohort | Fused EER / FRR / FAR | EER Δ vs cosine, pp | EER Δ vs logistic, pp | Repeated score rows / total |
 | --- | --- | --- | --- | --- |
-| ds007176 | 21.75% / 66.99% / 3.16% | −5.85 [−8.11, −3.53] | +3.18 [+0.42, +6.37] | 18,124/18,912 |
-| RestCog | 23.96% / 75.76% / 2.26% | −4.18 [−5.81, −2.38] | +1.51 [−0.30, +3.27] | 73,885/74,880 |
-| Dortmund | 19.79% / 72.40% / 1.59% | −4.75 [−5.96, −3.37] | −0.07 [−1.34, +1.17] | 322,579/326,832 |
-| WBCIC-SHU | 31.40% / 72.08% / 6.04% | +0.57 [−6.20, +7.20] | +0.77 [−5.47, +6.94] | 683/720 |
+| ds007176 | 21.74% / 66.99% / 3.16% | −5.86 [−8.11, −3.53] | +3.17 [+0.42, +6.37] | 18,431/18,912 |
+| RestCog | 23.96% / 75.80% / 2.24% | −4.18 [−5.81, −2.38] | +1.51 [−0.31, +3.27] | 74,303/74,880 |
+| Dortmund | 19.79% / 72.47% / 1.59% | −4.75 [−5.96, −3.36] | −0.08 [−1.35, +1.17] | 324,431/326,832 |
+| WBCIC-SHU | 31.45% / 72.08% / 6.04% | +0.62 [−6.12, +7.25] | +0.82 [−5.48, +7.14] | 695/720 |
 
 | Cohort | Constituent | Fusion − constituent FRR, pp | Fusion − constituent FAR, pp |
 | --- | --- | --- | --- |
-| ds007176 | Cosine | −1.01 [−4.53, +2.39] | −1.26 [−3.54, +0.38] |
-| ds007176 | Logistic | +4.27 [−2.34, +11.21] | −0.25 [−1.63, +1.40] |
-| RestCog | Cosine | −0.54 [−4.58, +3.46] | −0.43 [−1.12, +0.04] |
-| RestCog | Logistic | −5.21 [−9.34, −1.47] | −0.21 [−0.95, +0.46] |
-| Dortmund | Cosine | +0.62 [−2.15, +4.22] | −0.25 [−0.50, +0.01] |
-| Dortmund | Logistic | −10.95 [−14.43, −7.89] | +0.34 [+0.03, +0.63] |
+| ds007176 | Cosine | −1.01 [−4.53, +2.39] | −1.26 [−3.55, +0.38] |
+| ds007176 | Logistic | +4.27 [−2.34, +11.21] | −0.26 [−1.63, +1.39] |
+| RestCog | Cosine | −0.50 [−4.55, +3.48] | −0.44 [−1.14, +0.02] |
+| RestCog | Logistic | −5.17 [−9.31, −1.45] | −0.22 [−0.96, +0.44] |
+| Dortmund | Cosine | +0.68 [−2.06, +4.27] | −0.25 [−0.51, −0.00] |
+| Dortmund | Logistic | −10.89 [−14.38, −7.81] | +0.34 [+0.02, +0.63] |
 | WBCIC-SHU | Cosine | +22.08 [+12.08, +32.08] | −7.71 [−17.76, +0.68] |
 | WBCIC-SHU | Logistic | +12.50 [+0.00, +25.42] | −5.21 [−16.67, +1.43] |
 

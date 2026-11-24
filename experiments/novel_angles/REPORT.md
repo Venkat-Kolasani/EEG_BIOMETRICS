@@ -323,6 +323,17 @@ The independent original 29-person all-model rerun was stopped at the user's req
 
 See [the evidence audit](CLAIM_AUDIT.md#round-5-evidence).
 
+## Round 6: robustness without a new cohort
+
+[Round 6 results](ROUND6_RESULTS.md) and the [claim audit](CLAIM_AUDIT.md#round-6-evidence) separate what survived follow-up from what still needs new data.
+
+- **Pairing's strongest result remains cosine.** Across 88 Round 5 contrasts, 30 passed approximate Holm correction and 43 passed approximate Benjamini–Hochberg correction. Cosine's EER improved in all four cohorts under both corrections and at every tested probe budget. The descriptive pooled difference was −6.10 percentage points (95% interval −8.69 to −3.51; I² 62.34%). This pools previously seen cohorts with different schedules and durations, not independent replications of the full protocol.
+- **The improvement did not depend on a single identity.** At the largest budgets, cosine's individual EER improved for 27/29 ds007176, 52/60 RestCog, 122/128 Dortmund and 10/10 WBCIC-SHU claimants. Dropping any one identity from both claimant and impostor roles left the pooled EER contrast negative in every cohort. All 80 reconstructed rotations passed the disjoint-role audit; perturbing late scores in the targeted rerun left calibration scores and frozen cutoffs unchanged.
+- **Discrimination still does not establish a usable threshold.** The one-sided clustered upper FAR bounds for paired cosine were 6.51%, 3.70%, 2.21% and 23.11%, respectively. Even a zero-event result on 128 independent impostors would have a 2.31% binomial upper bound for the identity-level ever-accepted event. The best-case 1% claim takes 299 independent trials, not 299 repeated windows or claimant comparisons. None of cosine, logistic regression or Tangent-SVM met all original gates at any tested budget.
+- **Fusion is a comparator, not an improvement over the strongest constituent.** Calibration-percentile cosine/logistic fusion improved EER compared with cosine alone in the three larger cohorts, but an EER improvement over logistic was not established in any cohort. Its frozen operating points still exceeded 1% FAR in every cohort. Deep model seed results are descriptive: two seeds do not establish stability.
+
+**Publication priorities after Round 6:** (1) equal-usable-time eye-state pairing as a longitudinal discrimination benchmark, with the limits on false-accept inference integral to the result; (2) a prospective validation with fully separate days, counterbalanced probe order and independent impostor recruitment; (3) threshold and fusion comparisons as secondary results, not as new authentication algorithms. Round 6 strengthens the first direction but does not establish that the design is unprecedented.
+
 ## Recommendation and stop/go criteria
 
 **Research go; deployment no-go.** Pursue a methods benchmark: *Eye-state pairing for longitudinal EEG verification: improved discrimination without reliable false-accept control*. At equal usable EEG duration, paired probes lowered cosine EER in both Loop 2 cohorts and both sensitivity analyses; neither scorer controlled FAR. Present Dortmund and WBCIC-SHU as checks on separate design limits, not additional locked replications. Combine #1 and #2; keep the original study and mixed-enrollment pivot as separate comparators. The SVM disagreement, nulls, and alignment trade-offs belong in the paper. This is a credible journal direction, not proof of better authentication, equal elapsed time, alpha-specific physiology, or liveness.

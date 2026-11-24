@@ -49,6 +49,22 @@ python -B round4.py ds004148 ~/eeg-verified-restcog \
 These JSONs contain aggregate rates and signed differences as fractions,
 with `point`, `low`, and `high` fields. No participant scores are written.
 
+## Round 6: robustness and follow-ups
+
+See the [protocol](ROUND6_PROTOCOL.md) and [results](ROUND6_RESULTS.md).
+With the Round 5 environment and prepared FIFs, including the staged
+`scoring-inputs/` for Dortmund and WBCIC-SHU:
+
+```sh
+python -B round6.py aggregate round6-aggregate.json
+python -B round6.py ds007176 round6-ds007176.json --fifs ~/eeg-verified-loop2 --kit "$CROSS_CONDITION_KIT"
+```
+
+Repeat the second command with each cohort's own name, staged inputs and output
+path. The scorer writes only aggregate objects, checks the original full-budget
+metrics before writing, and does not rerun the other Round 5 models.
+Then run `python -B render_round6.py` to regenerate the results tables.
+
 ## Round 5: model comparison
 
 Use the pinned evaluation Python (CPU PyTorch) with

@@ -4,6 +4,20 @@
 
 **How to read this audit:** *Fresh check* means the calculation or direct comparison was rerun. *Cached preparation* means the prepared files and recorded preparation evidence were reused; it does not mean another full raw-data preprocessing run. *Source check* means protocol, source code, or a publication was inspected rather than an empirical calculation. *Historical* means the statement was preserved from an earlier run, not rerun here. Values used in prose are rounded from the underlying aggregates, not subtracted after rounding. Nothing was tuned to produce a match.
 
+## Round 6 evidence
+
+[Round 6 protocol](ROUND6_PROTOCOL.md) was committed in `5f494f2` before the follow-up outputs were computed, after Round 5 results were known. [Full results](ROUND6_RESULTS.md) reuse the prepared inputs; no new participants or preprocessing. Cohort outputs: [ds007176](round6-ds007176.json), [RestCog](round6-ds004148.json), [Dortmund](round6-ds005385.json), [WBCIC-SHU](round6-wbcic-shu.json).
+
+| Claim | Exact field or source |
+|---|---|
+| Adjusted pairing results and cosine's four passes | [Aggregate](round6-aggregate.json) `tests.<dataset>/<model>.{delta,p,holm,bh}`; exact source deltas and percentile intervals are from Round 5 `comparisons.<model>/pair-minus-single.eer`. Approximate normal p-values, not raw-bootstrap tests. |
+| Split roles and cutoff information flow | `split_audit.{rotations,visit_patterns,decision_interventions}` in each cohort file; `round6.py:audited_rotations,audited_rows`; enrollment/normalization perturbation in `test_round6.py`. Earlier complete scorer source routes are documented in [the audit table](ROUND6_RESULTS.md#leakage-and-split-audit); no full original fit trace exists. Dortmund mapping is `loop3_dortmund.py:BLOCKS` (baseline pre enrollment, baseline post calibration, follow-up pre test), correcting the description only in `ROUND5_PROTOCOL.md`. |
+| FAR attempts, identities, power and upper bounds | `power` in each cohort file: `attempts`, `accepted`, `impostor_identities`, `identities_ever_accepted`, `{attempts,identities}_cp`, `clustered_upper`, `zero_error_minimum`, `zero_event_identity_upper`, `minimum_attempts_at_fixed_errors`, and `minimum_identities_at_fixed_events`. The attempt and ever-accepted identity bounds have different denominators, dependencies and estimands. |
+| Smaller probe budgets and original gates | `sensitivity.<windows>/<model>` (JSON nesting by window then model) gives EER/FRR/FAR and contrasts with intervals, plus all gate flags. In `round6.py:run`, full-budget paired/single/delta objects must match Round 5 exactly before output. |
+| Per-person EER, FRR and one-person influence | `heterogeneity.<model>.{eer,frr,pooled_eer_leave_one_out}`; per-claimant counts and paired-minus-single pooled EER after both roles of one identity are removed; no identities exported. |
+| Seed sensitivity and fusion | `seeds.<dataset>.<model>.<seed>` in `round6-aggregate.json` copies the Round 5 paired-EER seed values; two-seed sample SD is the absolute difference divided by √2. Cohort `fusion.{metrics,versus,repeat_score_rows,score_rows}` provides paired frozen-cutoff results, comparisons and ties. Calibrator percentile maps and fusion cutoff are estimated in the same calibration fold; neither sees final identities or later data. |
+| Descriptive random-effects cosine summary | `cosine_meta.{point,low,high,q,q_p,i2,tau2}` in `round6-aggregate.json`; input and uncertainty approximation as in the multiplicity row. Difference in visit schedules and durations limits interpretation. |
+
 ## Round 5 evidence
 
 **Fresh scoring, cached preparation.** The [protocol](ROUND5_PROTOCOL.md) was committed in `5a504f1` before scoring; `3efe077` records the fixed core execution order. The complete aggregates are [ds007176](round5-ds007176.json), [RestCog](round5-ds004148.json), [Dortmund](round5-ds005385-parallel.json), [WBCIC-SHU](round5-wbcic-shu.json). All include the 12 kit models and ten comparators; the core checkpoint files are not inputs to the final tables. No new data collection or preprocessing was performed.

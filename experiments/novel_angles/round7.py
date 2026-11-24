@@ -48,12 +48,16 @@ def backbone(name, channels, samples, classes):
     raise ValueError(name)
 
 
+def waveform_tensor(wave):
+    return torch.from_numpy(np.ascontiguousarray(wave.reshape(-1, *wave.shape[-2:])))
+
+
 def waveform_fit(name, enrolled):
     torch.manual_seed(SEED)
     channels, samples = enrolled.shape[-2:]
     net = backbone(name, channels, samples, len(enrolled))
     optimizer = torch.optim.Adam(net.parameters(), lr=.001)
-    x = torch.from_numpy(np.ascontiguousarray(enrolled.reshape(-1, channels, samples) * 1e6))
+    x = waveform_tensor(enrolled)
     y = torch.arange(len(enrolled)).repeat_interleave(enrolled.shape[1])
     for _ in range(8):
         for idx in torch.randperm(len(y)).split(64):
@@ -68,7 +72,7 @@ def waveform_fit(name, enrolled):
 
 
 def embeddings(net, wave):
-    x = torch.from_numpy(np.ascontiguousarray(wave.reshape(-1, *wave.shape[-2:]) * 1e6))
+    x = waveform_tensor(wave)
     with torch.inference_mode():
         z = torch.cat([F.normalize(net(batch)) for batch in x.split(64)])
     if not torch.isfinite(z).all():

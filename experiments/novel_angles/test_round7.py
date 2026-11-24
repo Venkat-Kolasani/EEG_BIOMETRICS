@@ -2,15 +2,30 @@ import unittest
 from unittest.mock import patch
 
 import numpy as np
+import torch
+from torch import nn
 
 from render_round7 import ROOT, load_results, render
 from round4 import variant_rows
 from round5 import COHORTS
 from round6 import previous
-from round7 import ANCHORS, BACKBONES, MODELS, feature_scores, score_fusion, state_scores, waveform_scores
+from round7 import (ANCHORS, BACKBONES, MODELS, embeddings, feature_scores, score_fusion, state_scores,
+                    waveform_fit, waveform_scores)
 
 
 class Round7Test(unittest.TestCase):
+    def test_waveform_fit_and_embedding_keep_prepared_scale(self):
+        wave = np.broadcast_to(np.array([-1., 1.], dtype=np.float32), (2, 3, 1, 2))
+        model = nn.Sequential(nn.Flatten(), nn.Linear(2, 2))
+        batches = []
+        model.register_forward_pre_hook(lambda _, args: batches.append(args[0].detach().numpy().copy()))
+        with patch("round7.backbone", return_value=model):
+            waveform_fit(BACKBONES[0], wave)
+        embeddings(model, wave)
+        self.assertEqual(len(batches), 9)
+        for batch in batches:
+            np.testing.assert_array_equal(batch, wave.reshape(-1, 1, 2))
+
     def test_stacker_and_frozen_cutoff_ignore_late_and_final_test_scores(self):
         rng = np.random.default_rng(11)
         split = tuple(np.array(ids) for ids in ([0, 1], [2, 3], [4, 5], [6]))

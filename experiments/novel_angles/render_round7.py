@@ -37,6 +37,7 @@ def render(results):
         "# Round 7: waveform networks and fusion",
         "",
         "Fresh scoring on reused prepared recordings, not an independent replication. See the [protocol](ROUND7_PROTOCOL.md).",
+        "These are the corrected reruns on the notebook's dimensionless, standardized waveforms, without the erroneous volts-to-microvolts conversion in the initial run.",
         "Negative paired-minus-single EER favors pairing. The intervals are unadjusted, crossed-identity bootstrap intervals.",
         "FRR and FAR are measured at the frozen cutoffs; EER summarizes score discrimination independently of those cutoffs.",
         "",

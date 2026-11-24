@@ -8,6 +8,8 @@
 
 **Fresh scoring, cached preparation.** [Protocol](ROUND7_PROTOCOL.md), [results](ROUND7_RESULTS.md), and aggregate outputs for [ds007176](round7-ds007176.json), [RestCog](round7-ds004148.json), [Dortmund](round7-ds005385.json), and [WBCIC-SHU](round7-wbcic-shu.json). These compare new models under the original locked windows, role splits, and frozen cutoffs, not on independent new cohorts.
 
+**Waveform scale correction:** The pinned preparation notebook's cell 24 (`step12_normalize`) standardizes each channel over retained epochs and time; cell 28 calls it before saving. Inspection of five prepared FIFs per cohort verified channel means near zero and standard deviations near one over those axes. The initial run (`9a25203`) multiplied the waveform values by a million before fitting and, separately, before each embedding pass. The rerun passes the standardized, resampled values unchanged through `round7.py:waveform_tensor`. This affects all three waveform backbones and both score fusions that use EEGNet. The fit-and-embedding regression test observes the actual network inputs.
+
 | Claim | Exact field or source |
 |---|---|
 | Fresh waveform and fusion scores, intervals, and gates | `metrics.<model>/<single or pair>/late`, `comparisons.<model>/pair-minus-single`, and `criteria.<model>`. The table reads the paired point estimates and pairing EER interval from these aggregates via `render_round7.py`. |

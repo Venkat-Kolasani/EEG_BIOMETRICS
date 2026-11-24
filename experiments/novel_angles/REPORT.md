@@ -336,9 +336,9 @@ See [the evidence audit](CLAIM_AUDIT.md#round-5-evidence).
 
 ## Round 7: waveform architectures and fusion
 
-[Round 7 results](ROUND7_RESULTS.md) compare Braindecode EEGNet v4, ShallowConvNet, DeepConvNet, and calibration-score, feature and eye-state fusion under the locked Round 5 protocol. The study reuses the same prepared recordings; cosine, logistic and Tangent-SVM are recomputed as anchors rather than rerunning every Round 5 model. The results show paired EER, frozen-cutoff FRR/FAR, pairing intervals, gate outcomes and descriptive comparisons with the Round 5 winners.
+[Round 7 results](ROUND7_RESULTS.md) compare Braindecode EEGNet v4, ShallowConvNet, DeepConvNet, and calibration-score, feature and eye-state fusion under the locked Round 5 protocol. The scores are from the corrected rerun: network fitting and inference use the recipe's already standardized waveforms without the initial run's erroneous volts-to-microvolts conversion. The study reuses the same prepared recordings; cosine, logistic and Tangent-SVM are recomputed as anchors rather than rerunning every Round 5 model. The results show paired EER, frozen-cutoff FRR/FAR, pairing intervals, gate outcomes and descriptive comparisons with the Round 5 winners.
 
-Treat fusion that lowers a paired EER point estimate as a candidate for external validation, not as evidence of secure operation or independent superiority. The stacker learns from the cutoff calibration visit, so its results test transfer to distinct later impostors, not a new validation of its calibration fit. See the [claim audit](CLAIM_AUDIT.md#round-7-evidence) for fit scope and provenance.
+The score stacker lowered the paired EER point estimate versus the Round 5 winner in ds007176 and RestCog, and its unadjusted pairing interval favored pairing in every cohort. It did not pass the held-out FAR gate. Treat it as a candidate for external validation, not as evidence of secure operation or independent superiority. The stacker learns from the cutoff calibration visit, so its results test transfer to distinct later impostors, not a new validation of its calibration fit. See the [claim audit](CLAIM_AUDIT.md#round-7-evidence) for fit scope and provenance.
 
 ## Recommendation and stop/go criteria
 
